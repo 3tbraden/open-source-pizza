@@ -7,31 +7,34 @@ contract OpenSourcePizza {
 
   uint public projectOwnerWeight = 50;
 
-  mapping(address => uint16) public projectOwners;
-
   mapping(uint16 => uint16[]) public dependenciesMap;
+
+  mapping(address => uint16) public projectOwners;
 
   mapping(uint16 => uint256) public undistributedFunds;
   mapping(uint16 => uint256) public distribution;
+
+  event SignUpEvent(uint16 projectID, address addr);
+  event DonateEvent(uint16 projectID);
 
   modifier onlyOracle {
     require(msg.sender == oracle);
     _;
   }
 
-  constructor() {
-    owner = msg.sender;
+  constructor(address oc) {
+    oracle = oc;
   }
 
-  function setOracle(address oc) public {
-    require(msg.sender == owner);
-    oracle = oc;
+  function requestSignUp(uint16 projectID) public {
+      emit SignUpEvent(projectID, msg.sender);
   }
 
   function donateToProject(uint16 projectID) public payable {
     require(msg.value > 0);
 
     undistributedFunds[projectID] += msg.value;
+    emit DonateEvent(projectID);
   }
 
   function redeem(uint16 projectID) public payable {
@@ -39,6 +42,11 @@ contract OpenSourcePizza {
     require(distribution[projectID] > 0);
 
     payable(msg.sender).transfer(distribution[projectID]);
+  }
+
+  // Oracle functionalities.
+  function signUp(uint16 projectID, address addr) public onlyOracle {
+    projectOwners[addr] = projectID;
   }
 
   function distribute(uint16 projectID) public onlyOracle {
@@ -63,6 +71,8 @@ contract OpenSourcePizza {
   function updateDepsAndDistribute(uint16 projectID, uint16[] memory dependencies) public onlyOracle {
     require(undistributedFunds[projectID] > 0);
 
-    // TODO
+    // TODO: update dependencies
+
+    distribute(projectID);
   }
 }

@@ -1,60 +1,63 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
 
-contract OpenSourcePizza {
-  address private owner;
-  address private oracle;
+import "./OSPOracle.sol";
+
+contract OpenSourcePizza is OSPOracleClient {
+  address public _owner;
+  address public _oracle;
 
   uint public projectOwnerWeight = 50;
 
-  mapping(uint16 => uint16[]) public dependenciesMap;
+  mapping(uint16 => uint16[]) public projectDependencies;
 
-  mapping(address => uint16) public projectOwners;
+  mapping(uint16 => address) public projectOwners;
 
   mapping(uint16 => uint256) public undistributedFunds;
   mapping(uint16 => uint256) public distribution;
 
-  event SignUpEvent(uint16 projectID, address addr);
-  event DonateEvent(uint16 projectID);
-
   modifier onlyOracle {
-    require(msg.sender == oracle);
+    require(msg.sender == _oracle);
     _;
   }
 
-  constructor(address oc) {
-    oracle = oc;
+  constructor(address oracle) OSPOracleClient(oracle) {
+    _owner = msg.sender;
+    _oracle = oracle;
   }
 
-  function requestSignUp(uint16 projectID) public {
-      emit SignUpEvent(projectID, msg.sender);
+  function register(uint16 projectID) external {
+    requestRegisterFromOracle(projectID);
   }
 
-  function donateToProject(uint16 projectID) public payable {
+  function donateToProject(uint16 projectID) external payable {
     require(msg.value > 0);
 
     undistributedFunds[projectID] += msg.value;
-    emit DonateEvent(projectID);
+    requestDonateFromOracle(projectID);
   }
 
-  function redeem(uint16 projectID) public payable {
-    require(projectOwners[msg.sender] == projectID);
+  function redeem(uint16 projectID) external payable {
+    require(projectOwners[projectID] == msg.sender);
     require(distribution[projectID] > 0);
 
-    payable(msg.sender).transfer(distribution[projectID]);
+    uint256 transferValue = distribution[projectID];
+    // TODO: safeMath.sol
+    distribution[projectID] -= transferValue ;
+    payable(msg.sender).transfer(transferValue);
   }
 
-  // Oracle functionalities.
-  function signUp(uint16 projectID, address addr) public onlyOracle {
-    projectOwners[addr] = projectID;
+  function registerProject(uint16 projectID, address addr) external override onlyOracle {
+    projectOwners[projectID] = addr;
   }
 
-  function distribute(uint16 projectID) public onlyOracle {
+  function distribute(uint16 projectID) public override onlyOracle {
     require(undistributedFunds[projectID] > 0);
 
     uint256 remaining = undistributedFunds[projectID];
-    uint16[] memory dependencies = dependenciesMap[projectID];
+    uint16[] memory dependencies = projectDependencies[projectID];
     if (dependencies.length > 0) {
+      // TODO: safeMath.sol
       // Distribute among dependents first.
       uint256 dependentsShare = remaining * (1 - projectOwnerWeight) / 100;
       uint256 singleShare = dependentsShare / dependencies.length;
@@ -68,10 +71,12 @@ contract OpenSourcePizza {
     distribution[projectID] += remaining;
   }
 
-  function updateDepsAndDistribute(uint16 projectID, uint16[] memory dependencies) public onlyOracle {
+  function updateDepsAndDistribute(uint16 projectID, uint16[] calldata deps) external override onlyOracle {
+    // TODO: limit number of dependencies
     require(undistributedFunds[projectID] > 0);
 
-    // TODO: update dependencies
+    // Update dependencies.
+    projectDependencies[projectID] = deps;
 
     distribute(projectID);
   }

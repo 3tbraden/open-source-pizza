@@ -50,7 +50,8 @@ contract OpenSourcePizza is OSPOracleClient {
     require(ok, "subtract balance error");
 
     distribution[projectID] = newBalance;
-    payable(msg.sender).transfer(transferValue);
+    (bool redeemOK, bytes memory result) =  msg.sender.call{value: transferValue}("");
+    require(redeemOK, "redeem transaction error");
   }
 
   function registerProject(uint16 projectID, address addr) external override onlyOracle {

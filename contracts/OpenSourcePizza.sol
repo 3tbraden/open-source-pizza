@@ -3,9 +3,10 @@ pragma solidity >=0.4.22 <0.9.0;
 
 import "./OSPOracle.sol";
 
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 contract OpenSourcePizza is OSPOracleClient {
   address public _owner;
-  address public _oracle;
 
   uint public projectOwnerWeight = 50;
 
@@ -33,7 +34,10 @@ contract OpenSourcePizza is OSPOracleClient {
   function donateToProject(uint16 projectID) external payable {
     require(msg.value > 0);
 
-    undistributedFunds[projectID] += msg.value;
+    (bool ok, uint256 newBalance) = SafeMath.tryAdd(distribution[projectID], msg.value);
+    require(ok, "add balance error");
+
+    distribution[projectID] = newBalance;
     requestDonateFromOracle(projectID);
   }
 
@@ -42,8 +46,10 @@ contract OpenSourcePizza is OSPOracleClient {
     require(distribution[projectID] > 0);
 
     uint256 transferValue = distribution[projectID];
-    // TODO: safeMath.sol
-    distribution[projectID] -= transferValue ;
+    (bool ok, uint256 newBalance) = SafeMath.trySub(distribution[projectID], transferValue);
+    require(ok, "subtract balance error");
+
+    distribution[projectID] = newBalance;
     payable(msg.sender).transfer(transferValue);
   }
 
@@ -57,18 +63,28 @@ contract OpenSourcePizza is OSPOracleClient {
     uint256 remaining = undistributedFunds[projectID];
     uint16[] memory dependencies = projectDependencies[projectID];
     if (dependencies.length > 0) {
-      // TODO: safeMath.sol
       // Distribute among dependents first.
-      uint256 dependentsShare = remaining * (1 - projectOwnerWeight) / 100;
-      uint256 singleShare = dependentsShare / dependencies.length;
+      (bool depsTotalOK, uint256 dependentsShare) = SafeMath.tryMul(remaining, (100 - projectOwnerWeight) / 100);
+      require(depsTotalOK, "calculate total error");
+  
+      (bool singleShareOK, uint256 singleShare) = SafeMath.tryDiv(dependentsShare, dependencies.length);
+      require(singleShareOK, "calculate single share error");
 
       for (uint i = 0; i < dependencies.length; i++) {
-        distribution[dependencies[i]] += singleShare;
-        remaining -= singleShare;
+        (bool addOK, uint256 newDepBalance) = SafeMath.tryAdd(distribution[dependencies[i]], singleShare);
+        require(addOK, "distribute balance error");
+        distribution[dependencies[i]] = newDepBalance;
+
+        (bool subOK, uint256 newRemaining) = SafeMath.trySub(remaining, singleShare);
+        require(subOK, "calculate remaining balance error");
+        remaining = newRemaining;
       }
     }
-    // Give parent project the remaining fund.
-    distribution[projectID] += remaining;
+
+    // Give parent project the remaining fund, only if distribution among dependents are successful.
+    (bool ok, uint256 newBalance) = SafeMath.tryAdd(distribution[projectID], remaining);
+    require(ok, "distribute remaining balance error");
+    distribution[projectID] = newBalance;
   }
 
   function updateDepsAndDistribute(uint16 projectID, uint16[] calldata deps) external override onlyOracle {

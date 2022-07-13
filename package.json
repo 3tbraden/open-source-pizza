@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.0",
+    "openzeppelin-solidity": "4.6.0",
+    "truffle": "^5.5.21"
+  }
+}

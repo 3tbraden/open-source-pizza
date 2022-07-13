@@ -5,7 +5,6 @@ import "./OSPOracle.sol";
 
 contract OpenSourcePizzaOracle is OSPOracle {
   address _owner;
-  address _caller;
 
   modifier onlyOwner {
     require(msg.sender == _owner);

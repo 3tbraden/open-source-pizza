@@ -7,13 +7,13 @@ interface OSPOracleInterface {
 }
 
 abstract contract OSPOracle is OSPOracleInterface {
-  address _caller;
+  address caller;
 
   event RegisterEvent(uint16 projectID);
   event SyncEvent(uint16 projectID);
 
-  constructor(address caller) {
-    _caller = caller;
+  constructor(address c) {
+    caller = c;
   }
  
   function requestRegister(uint16 projectID) external {
@@ -25,31 +25,31 @@ abstract contract OSPOracle is OSPOracleInterface {
   }
 
   function replyRegister(uint16 projectID, address addr) external {
-    OSPOracleClient(_caller).registerProject(projectID, addr);
+    OSPOracleClient(caller).registerProject(projectID, addr);
   }
 
   function replySyncDistribute(uint16 projectID) external {
-    OSPOracleClient(_caller).distribute(projectID);
+    OSPOracleClient(caller).distribute(projectID);
   }
 
   function replySyncUpdateAndDistribute(uint16 projectID, uint16[] calldata deps) external {
-    OSPOracleClient(_caller).updateDepsAndDistribute(projectID, deps);
+    OSPOracleClient(caller).updateDepsAndDistribute(projectID, deps);
   }
 }
 
 abstract contract OSPOracleClient {
-  address _oracle;
+  address oracle;
 
-  constructor(address oracle) {
-    _oracle = oracle;
+  constructor(address oc) {
+    oracle = oc;
   }
 
   function requestRegisterFromOracle(uint16 projectID) internal {
-    OSPOracleInterface(_oracle).requestRegister(projectID);
+    OSPOracleInterface(oracle).requestRegister(projectID);
   }
 
   function requestDonateFromOracle(uint16 projectID) internal {
-    OSPOracleInterface(_oracle).requestDepsSync(projectID);
+    OSPOracleInterface(oracle).requestDepsSync(projectID);
   }
 
   function registerProject(uint16 projectID, address addr) external virtual;

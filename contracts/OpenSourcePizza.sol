@@ -47,23 +47,23 @@ contract OpenSourcePizza is OSPOracleClient {
     owner = msg.sender;
   }
 
-  function updateOracle(address oc) external onlyOwner {
+  function updateOracle(address oc) public onlyOwner {
     oracle = oc;
   }
 
-  function disableContract() external onlyOwner {
+  function disableContract() public onlyOwner {
     disabled = true;
   }
 
-  function enableContract() external onlyOwner {
+  function enableContract() public onlyOwner {
     disabled = false;
   }
 
-  function register(uint16 projectID) external onlyEnabled {
+  function register(uint16 projectID) public onlyEnabled {
     requestRegisterFromOracle(projectID);
   }
 
-  function donateToProject(uint16 projectID, uint16 requestID) external payable onlyEnabled {
+  function donateToProject(uint16 projectID, uint16 requestID) public payable onlyEnabled {
     require(msg.value > 0);
     require(sponsorRequests[requestID] == uint16(0));
     require(sponsorRequestAmounts[requestID] == uint16(0));
@@ -75,7 +75,7 @@ contract OpenSourcePizza is OSPOracleClient {
     requestDonateFromOracle(requestID);
   }
 
-  function redeem(uint16 projectID) external payable onlyEnabled {
+  function redeem(uint16 projectID) public payable onlyEnabled {
     require(projectOwners[projectID] == msg.sender);
     require(distribution[projectID] > 0);
 
@@ -88,7 +88,7 @@ contract OpenSourcePizza is OSPOracleClient {
     require(redeemOK, "redeem transaction error");
   }
 
-  function registerProject(uint16 projectID, address addr) external override onlyOracle onlyEnabled {
+  function registerProject(uint16 projectID, address addr) public override onlyOracle onlyEnabled {
     projectOwners[projectID] = addr;
   }
 
@@ -132,13 +132,19 @@ contract OpenSourcePizza is OSPOracleClient {
       require(subOK, "calculate remaining balance error");
       remaining = newRemaining;
     }
+    undistributedAmounts[requestID] = remaining;
 
     // Only distributes to source project when all dependent funds have been distributed.
     if (toDepIdx == projectDependencies[sourceProjectID].length) {
       // Give source project the remaining fund, only if distribution among dependents are successful.
-      (bool ok, uint256 newBalance) = SafeMath.tryAdd(distribution[sourceProjectID], undistributedAmounts[requestID]);
+      (bool ok, uint256 newBalance) = SafeMath.tryAdd(distribution[sourceProjectID], remaining);
       require(ok, "distribute remaining balance error");
       distribution[sourceProjectID] = newBalance;
+
+      // Reset request params.
+      sponsorRequests[requestID] = 0;
+      sponsorRequestAmounts[requestID] = 0;
+      undistributedAmounts[requestID] = 0;
     }
   }
 
@@ -162,14 +168,14 @@ contract OpenSourcePizza is OSPOracleClient {
   }
 
   // Set up migration addresses for locked fund to be transferred out.
-  function updateMigrationAddress(uint16 projectID, address mAddr) external {
+  function updateMigrationAddress(uint16 projectID, address mAddr) public {
     require(projectOwners[projectID] == msg.sender);
 
     fundMigrations[projectID] = mAddr;
   }
 
   // Transfer locked fund in case of contract migration.
-  function migrateFunds(uint16 projectID) external onlyOwner {
+  function migrateFunds(uint16 projectID) public onlyOwner {
     require(disabled);
     require(distribution[projectID] > 0);
     require(fundMigrations[projectID] != address(0));

@@ -3,14 +3,14 @@ pragma solidity >=0.4.22 <0.9.0;
 
 interface OSPOracleInterface {
   function requestRegister(uint16 projectID) external;
-  function requestDepsSync(uint16 projectID) external;
+  function requestDonate(uint16 requestID) external;
 }
 
 abstract contract OSPOracle is OSPOracleInterface {
   address caller;
 
   event RegisterEvent(uint16 projectID);
-  event SyncEvent(uint16 projectID);
+  event DonateEvent(uint16 requestID);
 
   constructor(address c) {
     caller = c;
@@ -20,20 +20,20 @@ abstract contract OSPOracle is OSPOracleInterface {
     emit RegisterEvent(projectID);
   }
 
-  function requestDepsSync(uint16 projectID) external {
-    emit SyncEvent(projectID);
+  function requestDonate(uint16 requestID) external {
+    emit DonateEvent(requestID);
   }
 
   function replyRegister(uint16 projectID, address addr) external {
     OSPOracleClient(caller).registerProject(projectID, addr);
   }
 
-  function replySyncDistribute(uint16 projectID) external {
-    OSPOracleClient(caller).distribute(projectID);
+  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external {
+    OSPOracleClient(caller).updateDeps(projectID, deps, isReplace);
   }
 
-  function replySyncUpdateAndDistribute(uint16 projectID, uint16[] calldata deps) external {
-    OSPOracleClient(caller).updateDepsAndDistribute(projectID, deps);
+  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) external {
+    OSPOracleClient(caller).distribute(requestID, split, fromDepIdx, toDepIdx);
   }
 }
 
@@ -48,11 +48,11 @@ abstract contract OSPOracleClient {
     OSPOracleInterface(oracle).requestRegister(projectID);
   }
 
-  function requestDonateFromOracle(uint16 projectID) internal {
-    OSPOracleInterface(oracle).requestDepsSync(projectID);
+  function requestDonateFromOracle(uint16 requestID) internal {
+    OSPOracleInterface(oracle).requestDonate(requestID);
   }
 
   function registerProject(uint16 projectID, address addr) external virtual;
-  function distribute(uint16 projectID) public virtual;
-  function updateDepsAndDistribute(uint16 projectID, uint16[] calldata deps) external virtual;
+  function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public virtual;
+  function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external virtual;
 }

@@ -1,1 +1,0 @@
-export { getDependencies, isSync } from './src';

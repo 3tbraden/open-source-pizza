@@ -11,7 +11,7 @@ export interface packageObject {
 
   
 export interface DependencyInfo {
-    project_id: number;
-    ids: number[];
+    updated: boolean,
+    ids: number[],
     etag: string
-}   
+}

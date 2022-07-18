@@ -28,7 +28,7 @@
       "type": "function"
     }
   ],
-  "metadata": "{\"compiler\":{\"version\":\"0.8.15+commit.e14f2714\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"requestID\",\"type\":\"uint16\"}],\"name\":\"requestDonate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"projectID\",\"type\":\"uint16\"}],\"name\":\"requestRegister\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/OSPOracle.sol\":\"OSPOracleInterface\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/OSPOracle.sol\":{\"keccak256\":\"0x12fffec5c105e8115dfc5139a2c87ab823cc18c95486c6f172c030b68f4a6793\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://09bf4c5f8fea9e77e844b3c32ab77855036df29a2f8f38a3ad1c25d7986d5c1d\",\"dweb:/ipfs/QmVH9ynzrt7UZW61MrH6mYpYpLsvKCiupapic3HwCugov4\"]}},\"version\":1}",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.15+commit.e14f2714\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"requestID\",\"type\":\"uint16\"}],\"name\":\"requestDonate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"projectID\",\"type\":\"uint16\"}],\"name\":\"requestRegister\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/OSPOracle.sol\":\"OSPOracleInterface\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/OSPOracle.sol\":{\"keccak256\":\"0xb78e5c91ae23a2f6a93e4d44fb9ce08ed52a115e63e3ea72c8c794702bbd5ced\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://811a51aa988d144720cb938d051457bca82b694a0f55dc778b25b23146916404\",\"dweb:/ipfs/QmUCYDGARcuZA3P8Xj46UreXJaWdjxfgpvPnMfzuikw5Wq\"]}},\"version\":1}",
   "bytecode": "0x",
   "deployedBytecode": "0x",
   "immutableReferences": {},
@@ -36,7 +36,7 @@
   "deployedGeneratedSources": [],
   "sourceMap": "",
   "deployedSourceMap": "",
-  "source": "// SPDX-License-Identifier: MIT\npragma solidity >=0.4.22 <0.9.0;\n\ninterface OSPOracleInterface {\n  function requestRegister(uint16 projectID) external;\n  function requestDonate(uint16 requestID) external;\n}\n\nabstract contract OSPOracle is OSPOracleInterface {\n  address owner;\n  address caller;\n\n  event RegisterEvent(uint16 projectID);\n  event DonateEvent(uint16 requestID);\n\n  constructor(address c) {\n    owner = msg.sender;\n    caller = c;\n  }\n \n  function requestRegister(uint16 projectID) override external {\n    emit RegisterEvent(projectID);\n  }\n\n  function requestDonate(uint16 requestID) override external {\n    emit DonateEvent(requestID);\n  }\n\n  function replyRegister(uint16 projectID, address addr) virtual public;\n  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) virtual public;\n  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) virtual public;\n}\n\nabstract contract OSPOracleClient {\n  address owner;\n  address oracle;\n\n  constructor() {\n    owner = msg.sender;\n  }\n\n  function requestRegisterFromOracle(uint16 projectID) internal {\n    OSPOracleInterface(oracle).requestRegister(projectID);\n  }\n\n  function requestDonateFromOracle(uint16 requestID) internal {\n    OSPOracleInterface(oracle).requestDonate(requestID);\n  }\n\n  function updateOracle(address oc) public virtual;\n  function registerProject(uint16 projectID, address addr) external virtual;\n  function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public virtual;\n  function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external virtual;\n}\n",
+  "source": "// SPDX-License-Identifier: MIT\npragma solidity >=0.4.22 <0.9.0;\n\ninterface OSPOracleInterface {\n  function requestRegister(uint16 projectID) external;\n  function requestDonate(uint16 requestID) external;\n}\n\nabstract contract OSPOracle is OSPOracleInterface {\n  address owner;\n  address caller;\n\n  event RegisterEvent(uint16 projectID);\n  event DonateEvent(uint16 requestID);\n\n  constructor(address c) {\n    owner = msg.sender;\n    caller = c;\n  }\n \n  function requestRegister(uint16 projectID) override external {\n    emit RegisterEvent(projectID);\n  }\n\n  function requestDonate(uint16 requestID) override external {\n    emit DonateEvent(requestID);\n  }\n\n  function replyRegister(uint16 projectID, address addr) virtual public;\n  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) virtual public;\n  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) virtual public;\n}\n\nabstract contract OSPOracleClient {\n  address owner;\n  address oracle;\n\n  constructor() {\n    owner = msg.sender;\n  }\n\n  function requestRegisterFromOracle(uint16 projectID) internal {\n    OSPOracleInterface(oracle).requestRegister(projectID);\n  }\n\n  function requestDonateFromOracle(uint16 requestID) internal {\n    OSPOracleInterface(oracle).requestDonate(requestID);\n  }\n\n  function updateOracle(address oc) public virtual;\n  function registerProject(uint16 projectID, address addr) public virtual;\n  function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public virtual;\n  function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) public virtual;\n}\n",
   "sourcePath": "/Users/yinlokwong/Documents/unsw/comp6452/project2/open-source-pizza/contracts/OSPOracle.sol",
   "ast": {
     "absolutePath": "project:/contracts/OSPOracle.sol",
@@ -1746,13 +1746,13 @@
               "id": 454,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "1450:0:1"
+              "src": "1448:0:1"
             },
             "scope": 477,
-            "src": "1377:74:1",
+            "src": "1377:72:1",
             "stateMutability": "nonpayable",
             "virtual": true,
-            "visibility": "external"
+            "visibility": "public"
           },
           {
             "functionSelector": "ba3af6ed",
@@ -1761,7 +1761,7 @@
             "kind": "function",
             "modifiers": [],
             "name": "distribute",
-            "nameLocation": "1463:10:1",
+            "nameLocation": "1461:10:1",
             "nodeType": "FunctionDefinition",
             "parameters": {
               "id": 464,
@@ -1772,10 +1772,10 @@
                   "id": 457,
                   "mutability": "mutable",
                   "name": "requestID",
-                  "nameLocation": "1481:9:1",
+                  "nameLocation": "1479:9:1",
                   "nodeType": "VariableDeclaration",
                   "scope": 466,
-                  "src": "1474:16:1",
+                  "src": "1472:16:1",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1786,7 +1786,7 @@
                     "id": 456,
                     "name": "uint16",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1474:6:1",
+                    "src": "1472:6:1",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint16",
                       "typeString": "uint16"
@@ -1799,10 +1799,10 @@
                   "id": 459,
                   "mutability": "mutable",
                   "name": "split",
-                  "nameLocation": "1499:5:1",
+                  "nameLocation": "1497:5:1",
                   "nodeType": "VariableDeclaration",
                   "scope": 466,
-                  "src": "1492:12:1",
+                  "src": "1490:12:1",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1813,7 +1813,7 @@
                     "id": 458,
                     "name": "uint16",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1492:6:1",
+                    "src": "1490:6:1",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint16",
                       "typeString": "uint16"
@@ -1826,10 +1826,10 @@
                   "id": 461,
                   "mutability": "mutable",
                   "name": "fromDepIdx",
-                  "nameLocation": "1511:10:1",
+                  "nameLocation": "1509:10:1",
                   "nodeType": "VariableDeclaration",
                   "scope": 466,
-                  "src": "1506:15:1",
+                  "src": "1504:15:1",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1840,7 +1840,7 @@
                     "id": 460,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1506:4:1",
+                    "src": "1504:4:1",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -1853,10 +1853,10 @@
                   "id": 463,
                   "mutability": "mutable",
                   "name": "toDepIdx",
-                  "nameLocation": "1528:8:1",
+                  "nameLocation": "1526:8:1",
                   "nodeType": "VariableDeclaration",
                   "scope": 466,
-                  "src": "1523:13:1",
+                  "src": "1521:13:1",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1867,7 +1867,7 @@
                     "id": 462,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1523:4:1",
+                    "src": "1521:4:1",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -1876,16 +1876,16 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "1473:64:1"
+              "src": "1471:64:1"
             },
             "returnParameters": {
               "id": 465,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "1552:0:1"
+              "src": "1550:0:1"
             },
             "scope": 477,
-            "src": "1454:99:1",
+            "src": "1452:99:1",
             "stateMutability": "nonpayable",
             "virtual": true,
             "visibility": "public"
@@ -1897,7 +1897,7 @@
             "kind": "function",
             "modifiers": [],
             "name": "updateDeps",
-            "nameLocation": "1565:10:1",
+            "nameLocation": "1563:10:1",
             "nodeType": "FunctionDefinition",
             "parameters": {
               "id": 474,
@@ -1908,10 +1908,10 @@
                   "id": 468,
                   "mutability": "mutable",
                   "name": "projectID",
-                  "nameLocation": "1583:9:1",
+                  "nameLocation": "1581:9:1",
                   "nodeType": "VariableDeclaration",
                   "scope": 476,
-                  "src": "1576:16:1",
+                  "src": "1574:16:1",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1922,7 +1922,7 @@
                     "id": 467,
                     "name": "uint16",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1576:6:1",
+                    "src": "1574:6:1",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint16",
                       "typeString": "uint16"
@@ -1935,10 +1935,10 @@
                   "id": 471,
                   "mutability": "mutable",
                   "name": "deps",
-                  "nameLocation": "1612:4:1",
+                  "nameLocation": "1610:4:1",
                   "nodeType": "VariableDeclaration",
                   "scope": 476,
-                  "src": "1594:22:1",
+                  "src": "1592:22:1",
                   "stateVariable": false,
                   "storageLocation": "calldata",
                   "typeDescriptions": {
@@ -1950,7 +1950,7 @@
                       "id": 469,
                       "name": "uint16",
                       "nodeType": "ElementaryTypeName",
-                      "src": "1594:6:1",
+                      "src": "1592:6:1",
                       "typeDescriptions": {
                         "typeIdentifier": "t_uint16",
                         "typeString": "uint16"
@@ -1958,7 +1958,7 @@
                     },
                     "id": 470,
                     "nodeType": "ArrayTypeName",
-                    "src": "1594:8:1",
+                    "src": "1592:8:1",
                     "typeDescriptions": {
                       "typeIdentifier": "t_array$_t_uint16_$dyn_storage_ptr",
                       "typeString": "uint16[]"
@@ -1971,10 +1971,10 @@
                   "id": 473,
                   "mutability": "mutable",
                   "name": "isReplace",
-                  "nameLocation": "1623:9:1",
+                  "nameLocation": "1621:9:1",
                   "nodeType": "VariableDeclaration",
                   "scope": 476,
-                  "src": "1618:14:1",
+                  "src": "1616:14:1",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1985,7 +1985,7 @@
                     "id": 472,
                     "name": "bool",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1618:4:1",
+                    "src": "1616:4:1",
                     "typeDescriptions": {
                       "typeIdentifier": "t_bool",
                       "typeString": "bool"
@@ -1994,27 +1994,27 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "1575:58:1"
+              "src": "1573:58:1"
             },
             "returnParameters": {
               "id": 475,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "1650:0:1"
+              "src": "1646:0:1"
             },
             "scope": 477,
-            "src": "1556:95:1",
+            "src": "1554:93:1",
             "stateMutability": "nonpayable",
             "virtual": true,
-            "visibility": "external"
+            "visibility": "public"
           }
         ],
         "scope": 478,
-        "src": "948:705:1",
+        "src": "948:701:1",
         "usedErrors": []
       }
     ],
-    "src": "32:1622:1"
+    "src": "32:1618:1"
   },
   "compiler": {
     "name": "solc",
@@ -2022,7 +2022,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.8",
-  "updatedAt": "2022-07-18T10:06:13.501Z",
+  "updatedAt": "2022-07-18T11:15:12.030Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},

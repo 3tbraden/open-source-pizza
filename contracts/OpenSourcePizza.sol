@@ -43,11 +43,7 @@ contract OpenSourcePizza is OSPOracleClient {
     _;
   }
 
-  constructor(address oc) OSPOracleClient(oc) {
-    owner = msg.sender;
-  }
-
-  function updateOracle(address oc) public onlyOwner {
+  function updateOracle(address oc) override public onlyOwner {
     oracle = oc;
   }
 

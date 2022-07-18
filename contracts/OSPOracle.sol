@@ -16,11 +16,11 @@ abstract contract OSPOracle is OSPOracleInterface {
     caller = c;
   }
  
-  function requestRegister(uint16 projectID) external {
+  function requestRegister(uint16 projectID) override external {
     emit RegisterEvent(projectID);
   }
 
-  function requestDonate(uint16 requestID) external {
+  function requestDonate(uint16 requestID) override external {
     emit DonateEvent(requestID);
   }
 
@@ -40,10 +40,6 @@ abstract contract OSPOracle is OSPOracleInterface {
 abstract contract OSPOracleClient {
   address oracle;
 
-  constructor(address oc) {
-    oracle = oc;
-  }
-
   function requestRegisterFromOracle(uint16 projectID) internal {
     OSPOracleInterface(oracle).requestRegister(projectID);
   }
@@ -52,6 +48,7 @@ abstract contract OSPOracleClient {
     OSPOracleInterface(oracle).requestDonate(requestID);
   }
 
+  function updateOracle(address oc) public virtual;
   function registerProject(uint16 projectID, address addr) external virtual;
   function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public virtual;
   function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external virtual;

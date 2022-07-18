@@ -1,7 +1,8 @@
-const OpenSourcePizzaOracle = artifacts.require("OpenSourcePizzaOracle");
 const OpenSourcePizza = artifacts.require("OpenSourcePizza");
+const OpenSourcePizzaOracle = artifacts.require("OpenSourcePizzaOracle");
 
-module.exports = function (deployer) {
-  deployer.deploy(OpenSourcePizzaOracle);
-  deployer.deploy(OpenSourcePizza);
+module.exports = async function (deployer) {
+  deployer.deploy(OpenSourcePizza).then(function() {
+    return deployer.deploy(OpenSourcePizzaOracle, OpenSourcePizza.address);
+  });
 };

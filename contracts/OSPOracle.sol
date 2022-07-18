@@ -7,12 +7,14 @@ interface OSPOracleInterface {
 }
 
 abstract contract OSPOracle is OSPOracleInterface {
+  address owner;
   address caller;
 
   event RegisterEvent(uint16 projectID);
   event DonateEvent(uint16 requestID);
 
   constructor(address c) {
+    owner = msg.sender;
     caller = c;
   }
  
@@ -30,7 +32,12 @@ abstract contract OSPOracle is OSPOracleInterface {
 }
 
 abstract contract OSPOracleClient {
+  address owner;
   address oracle;
+
+  constructor() {
+    owner = msg.sender;
+  }
 
   function requestRegisterFromOracle(uint16 projectID) internal {
     OSPOracleInterface(oracle).requestRegister(projectID);

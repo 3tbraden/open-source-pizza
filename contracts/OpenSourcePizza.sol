@@ -6,9 +6,7 @@ import "./OSPOracle.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract OpenSourcePizza is OSPOracleClient {
-  address public owner;
-
-  bool public disabled = false;
+  bool public disabled = true;
 
   uint8 public projectOwnerWeight = 50;
 
@@ -52,6 +50,7 @@ contract OpenSourcePizza is OSPOracleClient {
   }
 
   function enableContract() public onlyOwner {
+    require(oracle != address(0));
     disabled = false;
   }
 

@@ -24,17 +24,9 @@ abstract contract OSPOracle is OSPOracleInterface {
     emit DonateEvent(requestID);
   }
 
-  function replyRegister(uint16 projectID, address addr) external {
-    OSPOracleClient(caller).registerProject(projectID, addr);
-  }
-
-  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external {
-    OSPOracleClient(caller).updateDeps(projectID, deps, isReplace);
-  }
-
-  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) external {
-    OSPOracleClient(caller).distribute(requestID, split, fromDepIdx, toDepIdx);
-  }
+  function replyRegister(uint16 projectID, address addr) virtual public;
+  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) virtual public;
+  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) virtual public;
 }
 
 abstract contract OSPOracleClient {

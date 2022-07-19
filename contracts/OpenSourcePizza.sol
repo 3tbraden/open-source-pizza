@@ -123,7 +123,7 @@ contract OpenSourcePizza is OSPOracleClient {
       // When this function is called multiple times for a single request.
       // Checks when this function is called for multiple times for a single sponsorship request.
       // Make sure the distribution has valid dependent receivers, i.e. dep indice.
-      require(toDepIdx < projectDependencies[sponsorRequests[requestID]].length, "toDepIdx out of range");
+      require(toDepIdx < projectDependencies[sourceProjectID].length, "toDepIdx out of range");
       distributionInProgress[requestID] = true;
     } else {
       // Distribute among the entire dependency list.
@@ -136,7 +136,7 @@ contract OpenSourcePizza is OSPOracleClient {
  
     uint256 remaining = undistributedAmounts[requestID];
     for (uint i = fromDepIdx; i <= toDepIdx; i++) {
-      uint256 singleDepShare = sponsorRequestAmounts[requestID] / split / (toDepIdx - fromDepIdx + 1);
+      uint256 singleDepShare = sponsorRequestAmounts[requestID] * (1 - projectOwnerWeight / 100) / (toDepIdx - fromDepIdx + 1);
       uint16 depProjectID = projectDependencies[sourceProjectID][i];
       (bool addOK, uint256 newDepBalance) = SafeMath.tryAdd(distribution[depProjectID], singleDepShare);
       require(addOK, "distribute balance error");
@@ -149,7 +149,7 @@ contract OpenSourcePizza is OSPOracleClient {
     undistributedAmounts[requestID] = remaining;
 
     // Only distributes to source project when all dependent funds have been distributed.
-    if (toDepIdx == projectDependencies[sourceProjectID].length) {
+    if (toDepIdx == projectDependencies[sourceProjectID].length - 1) {
       // Give source project the remaining fund, only if distribution among dependents are successful.
       (bool ok, uint256 newBalance) = SafeMath.tryAdd(distribution[sourceProjectID], remaining);
       require(ok, "distribute remaining balance error");

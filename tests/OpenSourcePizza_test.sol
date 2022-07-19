@@ -54,24 +54,16 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
 
   // TODO: test update single call max deps size with non oracle should fail
 
-  function testUpdateSingleCallMaxDepsSizeAction() public {
+  function testUpdateSingleCallMaxDepsSize() public {
     updateSingleCallMaxDepsSize(3);
-    Assert.ok(true, "update max deps size by owner should succeed");
-  }
-
-  function testUpdateSingleCallMaxDepsSizeResult() public {
     Assert.equal(singleCallMaxDepsSize, 3, "max deps size should be 3");
   }
 
   // TODO: test registerProject with non oracle address should fail
 
   /// #sender: account-1
-  function testRegisterProjectAction() public {
+  function testRegisterProject() public {
     registerProject(123, acc_project_owner);
-    Assert.ok(true, "register project by oracle should succeed");
-  }
-
-  function testRegisteredProjectResult() public {
     Assert.equal(projectOwners[123], acc_project_owner, "project 123 should map to account 2");
   }
 

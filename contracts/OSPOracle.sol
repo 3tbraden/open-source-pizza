@@ -7,8 +7,8 @@ interface OSPOracleInterface {
 }
 
 abstract contract OSPOracle is OSPOracleInterface {
-  address owner;
-  address caller;
+  address public owner;
+  address public caller;
 
   event RegisterEvent(uint16 projectID);
   event DonateEvent(uint16 requestID);
@@ -26,14 +26,14 @@ abstract contract OSPOracle is OSPOracleInterface {
     emit DonateEvent(requestID);
   }
 
-  function replyRegister(uint16 projectID, address addr) virtual public;
-  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) virtual public;
-  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) virtual public;
+  function replyRegister(uint16 projectID, address addr) public virtual;
+  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) public virtual;
+  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public virtual;
 }
 
 abstract contract OSPOracleClient {
-  address owner;
-  address oracle;
+  address public owner;
+  address public oracle;
 
   constructor() {
     owner = msg.sender;
@@ -50,5 +50,5 @@ abstract contract OSPOracleClient {
   function updateOracle(address oc) public virtual;
   function registerProject(uint16 projectID, address addr) public virtual;
   function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public virtual;
-  function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) public virtual;
+  function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external virtual;
 }

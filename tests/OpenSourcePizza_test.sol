@@ -85,14 +85,14 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   }
 
   /// #sender: account-3
-  /// #value: 999
+  /// #value: 600
   function testDonateToProject() public payable {
-    Assert.ok(acc_sponsor.balance > 999, "sponsor account should have sufficient fund");
+    Assert.ok(acc_sponsor.balance > 600, "sponsor account should have sufficient fund");
     Assert.equal(OpenSourcePizza(this).disabled(), false, "contract should be enabled");
 
-    (bool success, bytes memory result) = address(this).call{gas:500000, value:999}(abi.encodeWithSignature("donateToProject(uint16,uint16)", 234, 0));
+    (bool success, bytes memory result) = address(this).call{gas:500000, value:600}(abi.encodeWithSignature("donateToProject(uint16,uint16)", 234, 0));
     Assert.equal(success, true, "donate to project by a random sponsor should succeed");
-    Assert.equal(address(this).balance, 999, "balance should be updated to 999");
+    Assert.equal(address(this).balance, 600, "balance should be updated to 600");
   }
 
   /// reset oracle to the test account for mocking the following tests called by the oracle.
@@ -104,19 +104,32 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
 
   uint16[] deps;
   /// #sender: account-1
-  function testUpdateDepsAction() public {
+  function testUpdateDepsReplace() public {
     deps.push(uint16(234));
     deps.push(uint16(235));
+
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 123, deps, false));
+    Assert.ok(success, "oracle calls updateDeps should succeed");
+    Assert.equal(projectDependencies[123].length, 2, "project 123 has 2 dependencies");
+    Assert.equal(projectDependencies[123][0], 234, "project 123 has first dep 234");
+    Assert.equal(projectDependencies[123][1], 235, "project 123 has second dep 235");
+  }
+
+  /// #sender: account-1
+  function testUpdateDepsAppend() public {
+    deps.pop();
+    deps.pop();
     deps.push(uint16(236));
 
     (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 123, deps, false));
     Assert.ok(success, "oracle calls updateDeps should succeed");
-  }
-
-  function testUpdateDepsResult() public {
     Assert.equal(projectDependencies[123].length, 3, "project 123 has 3 dependencies");
     Assert.equal(projectDependencies[123][0], 234, "project 123 has first dep 234");
     Assert.equal(projectDependencies[123][1], 235, "project 123 has second dep 235");
     Assert.equal(projectDependencies[123][2], 236, "project 123 has third dep 236");
+  }
+
+  function testDistributeCall1() public {
+
   }
 }

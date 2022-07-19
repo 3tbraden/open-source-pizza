@@ -163,7 +163,7 @@ contract OpenSourcePizza is OSPOracleClient {
     uint16 projectID,
     uint16[] calldata deps,
     bool isReplace
-  ) public override onlyOracle onlyEnabled notDistributing(projectID) {
+  ) external override onlyOracle onlyEnabled notDistributing(projectID) {
     require(deps.length <= singleCallMaxDepsSize);
 
     // Replace dependencies.

@@ -9,9 +9,12 @@ contract OpenSourcePizza is OSPOracleClient {
   bool public disabled = true;
 
   uint8 public projectOwnerWeight = 50;
+  uint public singleCallMaxDepsSize = 100;
 
+  // projectID to projectIDs mapping for project dependencies.
   mapping(uint16 => uint16[]) public projectDependencies;
 
+  /// projectID to project owner address mapping.
   mapping(uint16 => address) public projectOwners;
 
   /// requestID to projectID mapping.
@@ -20,6 +23,8 @@ contract OpenSourcePizza is OSPOracleClient {
   mapping(uint16 => uint256) public sponsorRequestAmounts;
   /// requestID to remaining undistributed amount mapping.
   mapping(uint16 => uint256) public undistributedAmounts;
+  /// projectIDs mapping for projects that are in the process of fund distribution.
+  mapping(uint16 => bool) public distributionInProgress;
 
   mapping(uint16 => uint256) public distribution;
 
@@ -41,8 +46,17 @@ contract OpenSourcePizza is OSPOracleClient {
     _;
   }
 
+  modifier notDistributing(uint16 projectID) {
+    require(distributionInProgress[projectID] == false);
+    _;
+  }
+
   function updateOracle(address oc) override public onlyOwner {
     oracle = oc;
+  }
+
+  function updateSingleCallMaxDepsSize(uint size) public onlyOwner {
+    singleCallMaxDepsSize = size;
   }
 
   function disableContract() public onlyOwner {
@@ -94,7 +108,7 @@ contract OpenSourcePizza is OSPOracleClient {
   /// @param split the number of iterations this distribute function will be called for a request
   /// @param fromDepIdx the starting index of the dependent projectID to distribute the fund to
   /// @param toDepIdx the ending index of the dependent projectID to distribute the fund to
-  function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public override onlyOracle onlyEnabled {
+  function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public override onlyOracle onlyEnabled notDistributing(sponsorRequests[requestID]) {
     // Make sure there's undistributed fund for this sponsor request.
     require(sponsorRequests[requestID] > 0);
     require(sponsorRequestAmounts[requestID] > 0);
@@ -106,14 +120,15 @@ contract OpenSourcePizza is OSPOracleClient {
       // Checks when this function is called for multiple times for a single sponsorship request.
       // Make sure the distribution has valid dependent receivers.
       require(projectDependencies[sponsorRequests[requestID]].length <= toDepIdx);
+      distributionInProgress[requestID] = true;
     } else {
       // Distribute among the entire dependency list.
       fromDepIdx = 0;
       toDepIdx = projectDependencies[sourceProjectID].length;
     }
 
-    // Distribute to maximum 100 dependent projects in a single transaction.
-    require(toDepIdx - fromDepIdx <= 100);
+    // Distribute to a maximum number of dependent projects in a single transaction.
+    require(toDepIdx - fromDepIdx <= singleCallMaxDepsSize);
  
     uint256 remaining = undistributedAmounts[requestID];
     for (uint i = fromDepIdx; i < toDepIdx; i++) {
@@ -140,6 +155,7 @@ contract OpenSourcePizza is OSPOracleClient {
       sponsorRequests[requestID] = 0;
       sponsorRequestAmounts[requestID] = 0;
       undistributedAmounts[requestID] = 0;
+      distributionInProgress[requestID] = false;
     }
   }
 
@@ -147,8 +163,8 @@ contract OpenSourcePizza is OSPOracleClient {
     uint16 projectID,
     uint16[] calldata deps,
     bool isReplace
-  ) public override onlyOracle onlyEnabled {
-    require(deps.length <= 100);
+  ) public override onlyOracle onlyEnabled notDistributing(projectID) {
+    require(deps.length <= singleCallMaxDepsSize);
 
     // Replace dependencies.
     if (isReplace || projectDependencies[projectID].length == 0) {

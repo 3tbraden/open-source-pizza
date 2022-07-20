@@ -8,14 +8,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const web3_1 = __importDefault(require("web3"));
-(() => __awaiter(void 0, void 0, void 0, function* () {
-    //connect to web3
-    const web3Provider = new web3_1.default.providers.WebsocketProvider("ws://localhost:7545");
-    const web3 = new web3_1.default(web3Provider);
-    console.log(web3);
-}))();
+const Contract = require('web3-eth-contract');
+const OpenSourcePizzaOracle = require('./contracts/OpenSourcePizzaOracle.json');
+// set provider for all later instances to use
+Contract.setProvider('wss://ropsten.infura.io/ws/v3/2c77e96cffa447759bf958ee4cd8f9ad');
+// const caller = "0x557FD57ca1855913e457DA28fF3E033B0c653700";
+const address = "0x671BC4b1388e52f864fa182Bc1D59Cef23AaD797";
+var contract = new Contract(OpenSourcePizzaOracle.abi, address);
+contract.events["RegisterEvent(uint16)"]()
+    .on("connected", function (subId) {
+    console.log("listening on event RegisterEvent");
+})
+    .on("data", function (event) {
+    return __awaiter(this, void 0, void 0, function* () {
+        console.log(`logging event returnValues ${JSON.stringify(event.returnValues)}`);
+    });
+});

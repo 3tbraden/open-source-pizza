@@ -23,8 +23,8 @@ contract OpenSourcePizzaOracle is OSPOracle {
     OSPOracleClient(caller).updateDeps(projectID, deps, isReplace);
   }
 
-  function replySyncDistribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) override public onlyOwner {
-    OSPOracleClient(caller).distribute(requestID, split, fromDepIdx, toDepIdx);
+  function replySyncDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) override public onlyOwner {
+    OSPOracleClient(caller).distribute(requestID, fromDepIdx, toDepIdx);
   }
 
   function shutdown() external onlyOwner {

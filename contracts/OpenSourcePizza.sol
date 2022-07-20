@@ -51,11 +51,6 @@ contract OpenSourcePizza is OSPOracleClient {
     _;
   }
 
-  modifier notDistributing(uint16 projectID) {
-    require(distributionInProgress[projectID] == false, "another distribution in progress for project");
-    _;
-  }
-
   function updateOracle(address oc) override public onlyOwner {
     oracle = oc;
   }
@@ -109,34 +104,28 @@ contract OpenSourcePizza is OSPOracleClient {
   /// so that project owners can later redeem the fund.
   /// This function may be called several times for a given sponsorship request,
   /// in case the dependency list of the project is too large to be handled in a single transaction.
-  /// @param split the number of iterations this distribute function will be called for a request
-  /// @param fromDepIdx the starting index(inclusive) of the dependent projectID to distribute the fund to
-  /// @param toDepIdx the ending index(inclusive) of the dependent projectID to distribute the fund to
-  function distribute(uint16 requestID, uint16 split, uint fromDepIdx, uint toDepIdx) public override onlyOracle onlyEnabled notDistributing(sponsorRequests[requestID]) {
+  /// @param requestID is the request to distribute locked fund for.
+  /// @param fromDepIdx the starting index(inclusive) of the dependent projectID to distribute the fund to.
+  /// @param toDepIdx the ending index(inclusive) of the dependent projectID to distribute the fund to.
+  function distribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public override onlyOracle onlyEnabled {
     // Make sure there's undistributed fund for this sponsor request.
     require(sponsorRequests[requestID] > 0, "invalid sponsorship request");
     require(sponsorRequestAmounts[requestID] > 0, "invalid sponsorship request");
     require(undistributedAmounts[requestID] > 0, "invalid sponsorship request");
 
     uint16 sourceProjectID = sponsorRequests[requestID];
-    if (split > 0) {
-      // When this function is called multiple times for a single request.
-      // Checks when this function is called for multiple times for a single sponsorship request.
-      // Make sure the distribution has valid dependent receivers, i.e. dep indice.
-      require(toDepIdx < projectDependencies[sourceProjectID].length, "toDepIdx out of range");
-      distributionInProgress[requestID] = true;
-    } else {
+    if (toDepIdx == 0) {
       // Distribute among the entire dependency list.
       fromDepIdx = 0;
-      toDepIdx = projectDependencies[sourceProjectID].length;
+      toDepIdx = projectDependencies[sourceProjectID].length - 1;
     }
-
     // Distribute to a maximum number of dependent projects in a single transaction.
     require(toDepIdx - fromDepIdx + 1 <= singleCallMaxDepsSize, "dep size is over allowed size");
+    distributionInProgress[requestID] = true;
  
     uint256 remaining = undistributedAmounts[requestID];
+    uint256 singleDepShare = sponsorRequestAmounts[requestID] * (100 - projectOwnerWeight) / 100 / projectDependencies[sourceProjectID].length;
     for (uint i = fromDepIdx; i <= toDepIdx; i++) {
-      uint256 singleDepShare = sponsorRequestAmounts[requestID] * (1 - projectOwnerWeight / 100) / (toDepIdx - fromDepIdx + 1);
       uint16 depProjectID = projectDependencies[sourceProjectID][i];
       (bool addOK, uint256 newDepBalance) = SafeMath.tryAdd(distribution[depProjectID], singleDepShare);
       require(addOK, "distribute balance error");
@@ -167,8 +156,9 @@ contract OpenSourcePizza is OSPOracleClient {
     uint16 projectID,
     uint16[] calldata deps,
     bool isReplace
-  ) external override onlyOracle onlyEnabled notDistributing(projectID) {
+  ) external override onlyOracle onlyEnabled {
     require(deps.length <= singleCallMaxDepsSize, "dep size is over allowed size");
+    require(distributionInProgress[projectID] == false, "another distribution in progress for project");
 
     // Replace dependencies.
     if (isReplace || projectDependencies[projectID].length == 0) {

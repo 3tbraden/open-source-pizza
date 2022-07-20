@@ -8,7 +8,7 @@ import "../contracts/OpenSourcePizzaOracle.sol";
 
 import "https://github.com/GNSPS/solidity-bytes-utils/blob/master/contracts/BytesLib.sol";
 
-contract OpenSourcePizzaTest1 is OpenSourcePizza {
+contract OpenSourcePizzaTest is OpenSourcePizza {
   using BytesLib for bytes;
 
   address acc_contract_owner;

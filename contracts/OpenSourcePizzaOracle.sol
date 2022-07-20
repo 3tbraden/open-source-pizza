@@ -5,13 +5,13 @@ import "./OSPOracle.sol";
 
 contract OpenSourcePizzaOracle is OSPOracle {
   modifier onlyOwner {
-    require(msg.sender == owner);
+    require(msg.sender == owner, "owner only");
     _;
   }
 
   constructor(address caller) OSPOracle(caller) {}
 
-  function updateCaller(address c) external onlyOwner {
+  function updateCaller(address c) public onlyOwner {
     caller = c;
   }
 

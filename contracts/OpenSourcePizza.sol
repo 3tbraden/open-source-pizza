@@ -64,7 +64,7 @@ contract OpenSourcePizza is OSPOracleClient {
   }
 
   function enableContract() public onlyOwner {
-    require(oracle != address(0), "oracle should be different from owner");
+    require(oracle != address(0), "oracle is missing");
     disabled = false;
   }
 

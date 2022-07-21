@@ -6,12 +6,10 @@ export interface NpmRegistryResponse {
 
 export interface packageObject {
     dependencies: object,
-    devDependencies?: object,
 }
 
-  
 export interface DependencyInfo {
     updated: boolean,
     ids: number[],
-    etag: string
+    etags: any
 }

@@ -11,6 +11,7 @@ type Content = OctokitResponse<GetResponseDataTypeFromEndpointMethod<typeof octo
 type ContentResponse = Promise<Content>
 
 const get_repo_id_by_package_name = async (name: string): Promise<number> => {
+  
   const repo_path = await axios.get(`https://registry.npmjs.org/${name}`).then(
     (res) => res.data
   ) as NpmRegistryResponse;
@@ -25,16 +26,6 @@ const get_repo_id_by_package_name = async (name: string): Promise<number> => {
   return repo.data.id;
 };
 
-const get_repo_ids = async (dependencies: object) => {
-  const ids: number[] = [];
-
-  for (const dependency in dependencies) {
-    ids.push(await get_repo_id_by_package_name(dependency));
-  }
-
-  return ids;
-};
-
 const get_file = async (id: number, file: string): Promise<ContentResponse> => {
   const repo = await octokit.request("GET /repositories/{id}", {
     id: id,
@@ -47,30 +38,39 @@ const get_file = async (id: number, file: string): Promise<ContentResponse> => {
   });
 };
 
-export const getDependencies = async (id: number, etag: string): Promise<DependencyInfo> => {
-  const packages_file = await get_file(id, "package.json");
-  if (packages_file.headers.etag === etag) {
-    return { 'updated': false, 'ids': [], 'etag': etag }
+export const getDependencies = async (id: number, etags: any): Promise<DependencyInfo> => {
+  // check updates
+  var updated = false;
+  for (const id in etags) {
+    const packages_file = await get_file(parseInt(id), "package.json");
+    if (packages_file.headers.etag != etags[id]) {
+      updated = true;
+      break;
+    }
   }
 
-  // package.json has been updated
-  // fetch new dependency list
-  const data = packages_file.data;
+  if (!updated && Object.keys(etags).length != 0) {
+    return {updated: false, ids: [], etags: etags}
+  }
+
+  const new_etags: object = {};
+  const file = await get_file(id, 'package.json')
+  etags[id] = file.headers.etag;
+  const data = file.data;
   type keys = keyof typeof data;
   const package_obj = await axios.get(data['download_url' as keys], {
     method: "GET",
   }).then((res) => res.data) as packageObject;
 
-  const dependencies = package_obj.dependencies ? package_obj.dependencies : {};
-  const devDependencies = package_obj.devDependencies
-    ? package_obj.devDependencies
-    : {};
+  const list: number[] = [];
 
+  if (package_obj.dependencies) {
+    await getDependencyList(package_obj.dependencies, list, new_etags)
+  }
   return {
     updated: true,
-    ids:
-      (await get_repo_ids(dependencies)).concat(await get_repo_ids(devDependencies)),
-    etag: packages_file.headers.etag!,
+    ids: list,
+    etags: new_etags
   };
 };
 
@@ -94,10 +94,23 @@ export const getAccount = async (id: number): Promise<string> => {
   }
 }
 
+const getDependencyList = async (dependencies: object, list: number[], etags: any) => {
+  if (!dependencies || Object.keys(dependencies).length == 0) {
+    return list;
+  }
 
-//getAccount(511402884).then(res => console.log(res));
+  for (const dependency in dependencies) {
+    const id = await get_repo_id_by_package_name(dependency);
+    list.push(id);
+    const file = await get_file(id, 'package.json');
+    etags[id] = file.headers.etag;
+    const data = file.data;
+    type keys = keyof typeof data;
+    const package_obj = await axios.get(data['download_url' as keys], {
+      method: "GET",
+    }).then((res) => res.data) as packageObject;
+    await getDependencyList(package_obj.dependencies, list, etags);
+  }
+}
 
-//get_file(511402884, "account.txt").then(data => console.log(data)).catch((e) => console.log("error is", e.status))
-
-
-//getDependencies(511402884, 'W/"15c736237d5e3d5d10a382e8f31eddd6a80f396a"').then((res) => console.log(res));
+//getDependencies(516239052, {}).then((res) => console.log(res));

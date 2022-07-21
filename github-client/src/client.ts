@@ -38,24 +38,8 @@ const get_file = async (id: number, file: string): Promise<ContentResponse> => {
   });
 };
 
-export const getDependencies = async (id: number, etags: any): Promise<DependencyInfo> => {
-  // check updates
-  var updated = false;
-  for (const id in etags) {
-    const packages_file = await get_file(parseInt(id), "package.json");
-    if (packages_file.headers.etag != etags[id]) {
-      updated = true;
-      break;
-    }
-  }
-
-  if (!updated && Object.keys(etags).length != 0) {
-    return {updated: false, ids: [], etags: etags}
-  }
-
-  const new_etags: object = {};
+export const getDependencies = async (id: number, ids: number[]): Promise<DependencyInfo> => {
   const file = await get_file(id, 'package.json')
-  etags[id] = file.headers.etag;
   const data = file.data;
   type keys = keyof typeof data;
   const package_obj = await axios.get(data['download_url' as keys], {
@@ -65,12 +49,19 @@ export const getDependencies = async (id: number, etags: any): Promise<Dependenc
   const list: number[] = [];
 
   if (package_obj.dependencies) {
-    await getDependencyList(package_obj.dependencies, list, new_etags)
+    await getDependencyList(package_obj.dependencies, list)
   }
+
+  if (list.sort().join() === ids.sort().join()) {
+    return {
+      updated: false,
+      ids: [],
+    }
+  }
+
   return {
     updated: true,
     ids: list,
-    etags: new_etags
   };
 };
 
@@ -94,7 +85,7 @@ export const getAccount = async (id: number): Promise<string> => {
   }
 }
 
-const getDependencyList = async (dependencies: object, list: number[], etags: any) => {
+const getDependencyList = async (dependencies: object, list: number[]) => {
   if (!dependencies || Object.keys(dependencies).length == 0) {
     return list;
   }
@@ -103,14 +94,13 @@ const getDependencyList = async (dependencies: object, list: number[], etags: an
     const id = await get_repo_id_by_package_name(dependency);
     list.push(id);
     const file = await get_file(id, 'package.json');
-    etags[id] = file.headers.etag;
     const data = file.data;
     type keys = keyof typeof data;
     const package_obj = await axios.get(data['download_url' as keys], {
       method: "GET",
     }).then((res) => res.data) as packageObject;
-    await getDependencyList(package_obj.dependencies, list, etags);
+    await getDependencyList(package_obj.dependencies, list);
   }
 }
 
-//getDependencies(516239052, {}).then((res) => console.log(res));
+getDependencies(516239052, [516235362,516238027]).then((res) => console.log(res));

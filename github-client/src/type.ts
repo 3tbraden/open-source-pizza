@@ -11,5 +11,4 @@ export interface packageObject {
 export interface DependencyInfo {
     updated: boolean,
     ids: number[],
-    etags: any
 }

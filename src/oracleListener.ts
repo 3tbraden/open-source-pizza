@@ -1,7 +1,7 @@
 import Web3 from "web3"
 const Contract = require('web3-eth-contract');
 
-const web3Provider = new Web3.providers.WebsocketProvider("ws://localhost:7545");
+const web3Provider = new Web3.providers.HttpProvider(`https://ropsten.infura.io/v3/2c77e96cffa447759bf958ee4cd8f9ad`);
 const web3 = new Web3(web3Provider); 
 
 const OpenSourcePizzaOracle = require('./contracts/OpenSourcePizzaOracle.json');
@@ -16,6 +16,23 @@ var contract = new Contract(OpenSourcePizzaOracle.abi, address);
 
 const dummyAddress = '0xef0F564ef485AA83cdaEd5B7Dfe7784A5dd272F9'
 
+// async function main() {
+
+//     var data = contract.methods["replyRegister(uint16,address)"](195, dummyAddress).encodeABI();
+//     const options = {
+//         to: address,
+//         data: data,
+//         gas: '100000',
+//     }
+
+//     const signedTransaction: any  = await web3.eth.accounts.signTransaction(options, privateKey);
+//     const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+//     console.log(transactionReceipt);
+// }
+// main()           
+
+
+
 contract!.events["RegisterEvent(uint16)"]()
     .on("connected", function (subId: any) {
         console.log("listening on event RegisterEvent");
@@ -28,19 +45,31 @@ contract!.events["RegisterEvent(uint16)"]()
         try {
             console.log('Trying...')
             console.log(contract.methods)
+
+            var data = contract.methods["replyRegister(uint16,address)"](projectID, dummyAddress).encodeABI();
+            const options = {
+                to: address,
+                data: data,
+                gas: '100000',
+            }
+
+            const signedTransaction: any  = await web3.eth.accounts.signTransaction(options, privateKey);
+            const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+            console.log(transactionReceipt);
             
-            contract.methods
-            .replyRegister(projectID, dummyAddress)
-            .send({ from: owner }, function (err: any, res: any) {
-              if (err) {
-                console.log("An error occured", err)
-                return
-              }
-              console.log("Hash of the transaction: " + res)
-            })
+            // contract.methods
+            // .replyRegister(projectID, dummyAddress)
+            // .send({ from: owner }, function (err: any, res: any) {
+            //   if (err) {
+            //     console.log("An error occured", err)
+            //     return
+            //   }
+            //   console.log("Hash of the transaction: " + res)
+            // })
             // const getData = contract.methods.replyRegister.getData(projectID, dummyAddress);
             // web3.eth.sendTransaction({to: address, from: owner, data: getData })
         } catch (e) {
             console.log(e);
         }
-    });
+
+   });

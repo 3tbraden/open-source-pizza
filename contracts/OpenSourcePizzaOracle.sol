@@ -5,13 +5,13 @@ import "./OSPOracle.sol";
 
 contract OpenSourcePizzaOracle is OSPOracle {
   modifier onlyOwner {
-    require(msg.sender == owner);
+    require(msg.sender == owner, "owner only");
     _;
   }
 
   constructor(address caller) OSPOracle(caller) {}
 
-  function updateCaller(address c) external onlyOwner {
+  function updateCaller(address c) public onlyOwner {
     caller = c;
   }
 
@@ -19,11 +19,11 @@ contract OpenSourcePizzaOracle is OSPOracle {
     OSPOracleClient(caller).registerProject(projectID, addr);
   }
 
-  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) override public onlyOwner {
+  function replyDonateUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) override public onlyOwner {
     OSPOracleClient(caller).updateDeps(projectID, deps, isReplace);
   }
 
-  function replySyncDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) override public onlyOwner {
+  function replyDonateDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) override public onlyOwner {
     OSPOracleClient(caller).distribute(requestID, fromDepIdx, toDepIdx);
   }
 

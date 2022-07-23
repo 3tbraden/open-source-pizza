@@ -27,8 +27,8 @@ abstract contract OSPOracle is OSPOracleInterface {
   }
 
   function replyRegister(uint16 projectID, address addr) public virtual;
-  function replySyncUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) public virtual;
-  function replySyncDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
+  function replyDonateUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) public virtual;
+  function replyDonateDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
 }
 
 abstract contract OSPOracleClient {

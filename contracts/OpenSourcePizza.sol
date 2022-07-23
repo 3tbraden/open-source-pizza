@@ -23,8 +23,8 @@ contract OpenSourcePizza is OSPOracleClient {
   mapping(uint16 => uint256) public sponsorRequestAmounts;
   /// requestID to remaining undistributed amount mapping.
   mapping(uint16 => uint256) public undistributedAmounts;
-  /// projectIDs mapping for projects that are in the process of fund distribution.
-  mapping(uint16 => bool) public distributionInProgress;
+  /// projectIDs mapping for projects that are in the process of fund distribution, value in # of distribution currently in process.
+  mapping(uint16 => uint8) public distributionInProgress;
 
   mapping(uint16 => uint256) public distribution;
 
@@ -74,6 +74,7 @@ contract OpenSourcePizza is OSPOracleClient {
 
   function donateToProject(uint16 projectID, uint16 requestID) public payable onlyEnabled {
     require(msg.value > 0, "no fund to donate");
+    require(projectID > 0, "projectID should be larger than 0");
     require(sponsorRequests[requestID] == uint16(0), "existing sponsorship request");
     require(sponsorRequestAmounts[requestID] == uint16(0), "existing sponsorship request");
     require(undistributedAmounts[requestID] == uint16(0), "existing sponsorship request");
@@ -121,7 +122,7 @@ contract OpenSourcePizza is OSPOracleClient {
     }
     // Distribute to a maximum number of dependent projects in a single transaction.
     require(toDepIdx - fromDepIdx + 1 <= singleCallMaxDepsSize, "dep size is over allowed size");
-    distributionInProgress[requestID] = true;
+    distributionInProgress[sourceProjectID] += 1;
  
     uint256 remaining = undistributedAmounts[requestID];
     uint256 singleDepShare = sponsorRequestAmounts[requestID] * (100 - projectOwnerWeight) / 100 / projectDependencies[sourceProjectID].length;
@@ -148,7 +149,7 @@ contract OpenSourcePizza is OSPOracleClient {
       sponsorRequests[requestID] = 0;
       sponsorRequestAmounts[requestID] = 0;
       undistributedAmounts[requestID] = 0;
-      distributionInProgress[requestID] = false;
+      distributionInProgress[sourceProjectID] -= 1;
     }
   }
 
@@ -158,7 +159,7 @@ contract OpenSourcePizza is OSPOracleClient {
     bool isReplace
   ) external override onlyOracle onlyEnabled {
     require(deps.length <= singleCallMaxDepsSize, "dep size is over allowed size");
-    require(distributionInProgress[projectID] == false, "another distribution in progress for project");
+    require(distributionInProgress[projectID] == 0, "sponsorship distribution in progress for project");
 
     // Replace dependencies.
     if (isReplace || projectDependencies[projectID].length == 0) {

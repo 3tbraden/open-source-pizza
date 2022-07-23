@@ -14,7 +14,7 @@ Contract.setProvider('wss://ropsten.infura.io/ws/v3/2c77e96cffa447759bf958ee4cd8
 const address = "0x671BC4b1388e52f864fa182Bc1D59Cef23AaD797";
 var contract = new Contract(OpenSourcePizzaOracle.abi, address);
 
-const dummyAddress = '0xef0F564ef485AA83cdaEd5B7Dfe7784A5dd272F9'
+const dummyAddress = '0xef0F564ef485AA83cdaEd5B7Dfe7784A5dd272F9' // this grabs the project from the github API
 
 // async function main() {
 
@@ -40,13 +40,13 @@ contract!.events["RegisterEvent(uint16)"]()
     .on("data", async function (event: any) {
         console.log(`logging event returnValues ${JSON.stringify(event.returnValues)}`);
         const { projectID } = event.returnValues
-        console.log(`projectID: ${projectID}`)
-
+        const caller = event.address // this extracts the address of who called the register function
+        console.log(`caller: ${caller}`)
         try {
             console.log('Trying...')
             console.log(contract.methods)
 
-            var data = contract.methods["replyRegister(uint16,address)"](projectID, dummyAddress).encodeABI();
+            var data = contract.methods["replyRegister(uint16,address)"](projectID, caller).encodeABI();
             const options = {
                 to: address,
                 data: data,

@@ -11,16 +11,16 @@ const privateKey = '0x1be9fb140547fbc23da661d283db717caf265a97bae49e248206023cc7
 Contract.setProvider('wss://ropsten.infura.io/ws/v3/2c77e96cffa447759bf958ee4cd8f9ad');
 
 // const caller = "0x557FD57ca1855913e457DA28fF3E033B0c653700";
-const address = "0x671BC4b1388e52f864fa182Bc1D59Cef23AaD797";
-var contract = new Contract(OpenSourcePizzaOracle.abi, address);
+const oracleAddress = "0x146afe4c90a2be19b3784351c8f36357b27c8b8d";
+var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 
 const dummyAddress = '0xef0F564ef485AA83cdaEd5B7Dfe7784A5dd272F9' // this grabs the project from the github API
 
 // async function main() {
 
-//     var data = contract.methods["replyRegister(uint16,address)"](195, dummyAddress).encodeABI();
+//     var data = contract.methods["replyRegister(uint16,address)"](5, dummyAddress).encodeABI();
 //     const options = {
-//         to: address,
+//         to: oracleAddress,
 //         data: data,
 //         gas: '100000',
 //     }
@@ -40,15 +40,14 @@ contract!.events["RegisterEvent(uint16)"]()
     .on("data", async function (event: any) {
         console.log(`logging event returnValues ${JSON.stringify(event.returnValues)}`);
         const { projectID } = event.returnValues
-        const caller = event.address // this extracts the address of who called the register function
-        console.log(`caller: ${caller}`)
+
         try {
             console.log('Trying...')
             console.log(contract.methods)
 
-            var data = contract.methods["replyRegister(uint16,address)"](projectID, caller).encodeABI();
+            var data = contract.methods["replyRegister(uint16,address)"](projectID, dummyAddress).encodeABI();
             const options = {
-                to: address,
+                to: oracleAddress,
                 data: data,
                 gas: '100000',
             }
@@ -57,17 +56,6 @@ contract!.events["RegisterEvent(uint16)"]()
             const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
             console.log(transactionReceipt);
             
-            // contract.methods
-            // .replyRegister(projectID, dummyAddress)
-            // .send({ from: owner }, function (err: any, res: any) {
-            //   if (err) {
-            //     console.log("An error occured", err)
-            //     return
-            //   }
-            //   console.log("Hash of the transaction: " + res)
-            // })
-            // const getData = contract.methods.replyRegister.getData(projectID, dummyAddress);
-            // web3.eth.sendTransaction({to: address, from: owner, data: getData })
         } catch (e) {
             console.log(e);
         }

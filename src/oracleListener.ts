@@ -18,23 +18,11 @@ const mainPizzaAddress = '0xc6c0089249de98f5459cea44cab3deebc3ef3fce'
 
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
-console.log(pizzaContract)
 const dummyAddress = '0xef0F564ef485AA83cdaEd5B7Dfe7784A5dd272F9' // this grabs the project from the github API
 
 async function main() {
-
-    // var data = contract.methods["replyRegister(uint16,address)"](5, dummyAddress).encodeABI();
-    // const options = {
-    //     to: oracleAddress,
-    //     data: data,
-    //     gas: '100000',
-    // }
-    // var projectID = await pizzaContract.methods.sponsorRequests(`12346`).call()
-    // return projectID
-    // const signedTransaction: any  = await web3.eth.accounts.signTransaction(options, privateKey);
-    // const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-    // console.log(transactionReceipt);
-}
+    // helper to call functions for quick executions
+}   
 main()           
 
 contract!.events["RegisterEvent(uint16)"]()
@@ -46,7 +34,7 @@ contract!.events["RegisterEvent(uint16)"]()
         const { projectID } = event.returnValues
 
         try {
-            console.log('Trying...')
+            console.log('Trying to call reply register...')
             console.log(contract.methods)
             // need to grab the address of the project owner
             var data = contract.methods["replyRegister(uint16,address)"](projectID, dummyAddress).encodeABI();
@@ -55,15 +43,13 @@ contract!.events["RegisterEvent(uint16)"]()
                 data: data,
                 gas: '100000',
             }
-
-            const signedTransaction: any  = await web3.eth.accounts.signTransaction(options, privateKey);
+            const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
             const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
             console.log(transactionReceipt);
             
         } catch (e) {
             console.log(e);
         }
-
    });
 
 contract!.events["DonateEvent(uint16)"]()
@@ -71,10 +57,42 @@ contract!.events["DonateEvent(uint16)"]()
         console.log("listening on event DonateEvent");
     })
     .on("data", async function (event: any) {
-        console.log('Event received from donate event')
+        console.log('DonateEvent event received...')
         const { requestID } = event.returnValues
         const projectID = await pizzaContract.methods.sponsorRequests(requestID).call()
         
-        // here, we call github to grab the dependencies   
-        const dummyIds = [1, 2, 3]
+        // Here, we call github to grab the dependencies. Currently using a dummy array
+        const dummyDependenciesFromGithub = [1, 2, 3]
+        // Iterates through the dependencies of the project and returns only the ones that exist in the contract
+        const extractProjects = async () => {
+            const arr: number[] = []
+            await Promise.all(dummyDependenciesFromGithub.map(async (projectID) => {
+                const result = await pizzaContract.methods.projectOwners(projectID).call()
+                result != 0 && arr.push(projectID)
+            }))
+            return arr;
+        }
+        const resultToReturn = await extractProjects()
+        console.log(resultToReturn)
+
+        // TODO: now, check whether dependencies have changed
+        var isChanged = true;
+        try {
+            console.log('Trying to call replyDonateUpdateDeps...')
+
+            // need to grab the address of the project owner
+            var data = contract.methods["replyDonateUpdateDeps(uint16, uint16[], bool)"](projectID, resultToReturn, isChanged).encodeABI();
+            const options = {
+                to: oracleAddress,
+                data: data,
+                gas: '100000',
+            }
+
+            const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
+            const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+            console.log(transactionReceipt);
+            
+        } catch (e) {
+            console.log(e);
+        }
     });

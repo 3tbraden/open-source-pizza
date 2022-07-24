@@ -1,8 +1,15 @@
 {
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.0",
     "@truffle/hdwallet-provider": "^2.0.11",
     "openzeppelin-solidity": "4.6.0",
-    "truffle": "^5.5.21"
+    "truffle": "^5.5.21",
+    "@octokit/rest": "^19.0.3",
+    "@octokit/types": "^6.39.0",
+    "axios": "^0.27.2",
+    "dotenv": "^16.0.1"
   }
 }

@@ -2,33 +2,33 @@
 pragma solidity >=0.4.22 <0.9.0;
 
 interface OSPOracleInterface {
-  function requestRegister(uint16 projectID) external;
-  function requestDonate(uint16 requestID) external;
+  function requestRegister(uint32 projectID) external;
+  function requestDonate(uint32 requestID) external;
 }
 
 abstract contract OSPOracle is OSPOracleInterface {
   address public owner;
   address public caller;
 
-  event RegisterEvent(uint16 projectID);
-  event DonateEvent(uint16 requestID);
+  event RegisterEvent(uint32 projectID);
+  event DonateEvent(uint32 requestID);
 
   constructor(address c) {
     owner = msg.sender;
     caller = c;
   }
  
-  function requestRegister(uint16 projectID) override external {
+  function requestRegister(uint32 projectID) override external {
     emit RegisterEvent(projectID);
   }
 
-  function requestDonate(uint16 requestID) override external {
+  function requestDonate(uint32 requestID) override external {
     emit DonateEvent(requestID);
   }
 
-  function replyRegister(uint16 projectID, address addr) public virtual;
-  function replyDonateUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) public virtual;
-  function replyDonateDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
+  function replyRegister(uint32 projectID, address addr) public virtual;
+  function replyDonateUpdateDeps(uint32 projectID, uint32[] calldata deps, bool isReplace) public virtual;
+  function replyDonateDistribute(uint32 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
 }
 
 abstract contract OSPOracleClient {
@@ -39,16 +39,16 @@ abstract contract OSPOracleClient {
     owner = msg.sender;
   }
 
-  function requestRegisterFromOracle(uint16 projectID) internal {
+  function requestRegisterFromOracle(uint32 projectID) internal {
     OSPOracleInterface(oracle).requestRegister(projectID);
   }
 
-  function requestDonateFromOracle(uint16 requestID) internal {
+  function requestDonateFromOracle(uint32 requestID) internal {
     OSPOracleInterface(oracle).requestDonate(requestID);
   }
 
   function updateOracle(address oc) public virtual;
-  function registerProject(uint16 projectID, address addr) public virtual;
-  function distribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
-  function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external virtual;
+  function registerProject(uint32 projectID, address addr) public virtual;
+  function distribute(uint32 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
+  function updateDeps(uint32 projectID, uint32[] calldata deps, bool isReplace) external virtual;
 }

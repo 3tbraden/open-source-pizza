@@ -12,24 +12,24 @@ contract OpenSourcePizza is OSPOracleClient {
   uint public singleCallMaxDepsSize = 100;
 
   // projectID to projectIDs mapping for project dependencies.
-  mapping(uint16 => uint16[]) public projectDependencies;
+  mapping(uint32 => uint32[]) public projectDependencies;
 
   /// projectID to project owner address mapping.
-  mapping(uint16 => address) public projectOwners;
+  mapping(uint32 => address) public projectOwners;
 
   /// requestID to projectID mapping.
-  mapping(uint16 => uint16) public sponsorRequests;
+  mapping(uint32 => uint32) public sponsorRequests;
   /// requestID to total sponsor amount mapping.
-  mapping(uint16 => uint256) public sponsorRequestAmounts;
+  mapping(uint32 => uint256) public sponsorRequestAmounts;
   /// requestID to remaining undistributed amount mapping.
-  mapping(uint16 => uint256) public undistributedAmounts;
+  mapping(uint32 => uint256) public undistributedAmounts;
   /// projectIDs mapping for projects that are in the process of fund distribution, value in # of distribution currently in process.
-  mapping(uint16 => uint8) public distributionInProgress;
+  mapping(uint32 => uint8) public distributionInProgress;
 
-  mapping(uint16 => uint256) public distribution;
+  mapping(uint32 => uint256) public distribution;
 
   /// Addresses for locked project fund to be transferred out in case of contract migration.
-  mapping(uint16 => address) public fundMigrations;
+  mapping(uint32 => address) public fundMigrations;
 
   modifier onlyOwner {
     require(msg.sender == owner, "owner only");
@@ -41,7 +41,7 @@ contract OpenSourcePizza is OSPOracleClient {
     _;
   }
 
-  modifier onlyProjectOwner(uint16 projectID) {
+  modifier onlyProjectOwner(uint32 projectID) {
     require(projectOwners[projectID] == msg.sender, "project owner only");
     _;
   }
@@ -68,16 +68,16 @@ contract OpenSourcePizza is OSPOracleClient {
     disabled = false;
   }
 
-  function register(uint16 projectID) public onlyEnabled {
+  function register(uint32 projectID) public onlyEnabled {
     requestRegisterFromOracle(projectID);
   }
 
-  function donateToProject(uint16 projectID, uint16 requestID) public payable onlyEnabled {
+  function donateToProject(uint32 projectID, uint32 requestID) public payable onlyEnabled {
     require(msg.value > 0, "no fund to donate");
     require(projectID > 0, "projectID should be larger than 0");
-    require(sponsorRequests[requestID] == uint16(0), "existing sponsorship request");
-    require(sponsorRequestAmounts[requestID] == uint16(0), "existing sponsorship request");
-    require(undistributedAmounts[requestID] == uint16(0), "existing sponsorship request");
+    require(sponsorRequests[requestID] == uint32(0), "existing sponsorship request");
+    require(sponsorRequestAmounts[requestID] == uint32(0), "existing sponsorship request");
+    require(undistributedAmounts[requestID] == uint32(0), "existing sponsorship request");
 
     sponsorRequests[requestID] = projectID;
     sponsorRequestAmounts[requestID] = msg.value;
@@ -85,7 +85,7 @@ contract OpenSourcePizza is OSPOracleClient {
     requestDonateFromOracle(requestID);
   }
 
-  function redeem(uint16 projectID) public payable onlyEnabled onlyProjectOwner(projectID) {
+  function redeem(uint32 projectID) public payable onlyEnabled onlyProjectOwner(projectID) {
     require(distribution[projectID] > 0, "no fund for project");
 
     uint256 transferValue = distribution[projectID];
@@ -97,7 +97,7 @@ contract OpenSourcePizza is OSPOracleClient {
     require(redeemOK, "redeem transaction error");
   }
 
-  function registerProject(uint16 projectID, address addr) public override onlyOracle onlyEnabled {
+  function registerProject(uint32 projectID, address addr) public override onlyOracle onlyEnabled {
     projectOwners[projectID] = addr;
   }
 
@@ -108,13 +108,13 @@ contract OpenSourcePizza is OSPOracleClient {
   /// @param requestID is the request to distribute locked fund for.
   /// @param fromDepIdx the starting index(inclusive) of the dependent projectID to distribute the fund to.
   /// @param toDepIdx the ending index(inclusive) of the dependent projectID to distribute the fund to.
-  function distribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public override onlyOracle onlyEnabled {
+  function distribute(uint32 requestID, uint fromDepIdx, uint toDepIdx) public override onlyOracle onlyEnabled {
     // Make sure there's undistributed fund for this sponsor request.
     require(sponsorRequests[requestID] > 0, "invalid sponsorship request");
     require(sponsorRequestAmounts[requestID] > 0, "invalid sponsorship request");
     require(undistributedAmounts[requestID] > 0, "invalid sponsorship request");
 
-    uint16 sourceProjectID = sponsorRequests[requestID];
+    uint32 sourceProjectID = sponsorRequests[requestID];
     if (toDepIdx == 0) {
       // Distribute among the entire dependency list.
       fromDepIdx = 0;
@@ -127,7 +127,7 @@ contract OpenSourcePizza is OSPOracleClient {
     uint256 remaining = undistributedAmounts[requestID];
     uint256 singleDepShare = sponsorRequestAmounts[requestID] * (100 - projectOwnerWeight) / 100 / projectDependencies[sourceProjectID].length;
     for (uint i = fromDepIdx; i <= toDepIdx; i++) {
-      uint16 depProjectID = projectDependencies[sourceProjectID][i];
+      uint32 depProjectID = projectDependencies[sourceProjectID][i];
       (bool addOK, uint256 newDepBalance) = SafeMath.tryAdd(distribution[depProjectID], singleDepShare);
       require(addOK, "distribute balance error");
       distribution[depProjectID] = newDepBalance;
@@ -154,8 +154,8 @@ contract OpenSourcePizza is OSPOracleClient {
   }
 
   function updateDeps(
-    uint16 projectID,
-    uint16[] calldata deps,
+    uint32 projectID,
+    uint32[] calldata deps,
     bool isReplace
   ) external override onlyOracle onlyEnabled {
     require(deps.length <= singleCallMaxDepsSize, "dep size is over allowed size");
@@ -174,14 +174,14 @@ contract OpenSourcePizza is OSPOracleClient {
   }
 
   // Set up migration addresses for locked fund to be transferred out.
-  function updateMigrationAddress(uint16 projectID, address mAddr) public onlyProjectOwner(projectID) {
+  function updateMigrationAddress(uint32 projectID, address mAddr) public onlyProjectOwner(projectID) {
     fundMigrations[projectID] = mAddr;
   }
 
   // Transfer locked fund in case of contract migration.
-  function migrateFunds(uint16 requestID) public payable onlyOwner {
+  function migrateFunds(uint32 requestID) public payable onlyOwner {
     require(disabled, "when contract is disabled only");
-    uint16 projectID = sponsorRequests[requestID];
+    uint32 projectID = sponsorRequests[requestID];
     require(projectID > 0, "no project for request");
     require(undistributedAmounts[requestID] > 0, "no locked fund for request");
     require(fundMigrations[projectID] != address(0), "invalid migration address");

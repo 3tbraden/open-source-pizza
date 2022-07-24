@@ -63,7 +63,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   /// test enabled requirement for registerProject
   /// #sender: account-1
   function testRegisterProjectFail1() public {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("registerProject(uint16,address)", 1, acc_project1_owner));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("registerProject(uint32,address)", 1, acc_project1_owner));
     Assert.equal(success, false, "registerProject when contract is disabled should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "contract is disabled", "Failed with unexpected reason");
@@ -71,7 +71,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
 
   /// test enabled requirement for donateToProject
   function testDonateToProjectFail() public {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("donateToProject(uint16,uint16)", 1, 0));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("donateToProject(uint32,uint32)", 1, 0));
     Assert.equal(success, false, "donateToProject when contract is disabled should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "contract is disabled", "Failed with unexpected reason");
@@ -84,7 +84,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
 
   /// test onlyOwner modifier on registerProject
   function testRegisterProjectFail2() public {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("registerProject(uint16,address)", 1, acc_project1_owner));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("registerProject(uint32,address)", 1, acc_project1_owner));
     Assert.equal(success, false, "registerProject by a non oracle account should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "oracle only", "Failed with unexpected reason");
@@ -115,13 +115,13 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   }
 
   /// test onlyOracle modifier on updateDeps
-  uint16[] deps1;
+  uint32[] deps1;
   function testUpdateDepsReplaceFail1() public {
-    deps1.push(uint16(123));
-    deps1.push(uint16(124));
-    deps1.push(uint16(125));
+    deps1.push(uint32(123));
+    deps1.push(uint32(124));
+    deps1.push(uint32(125));
 
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 1, deps1, false));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint32,uint32[],bool)", 1, deps1, false));
     Assert.equal(success, false, "updateDeps called by a non oracle account should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "oracle only", "Failed with unexpected reason");
@@ -130,7 +130,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   /// test deps size requirement on updateDeps
   /// #sender: account-1
   function testUpdateDepsReplaceFail2() public {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 1, deps1, false));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint32,uint32[],bool)", 1, deps1, false));
     Assert.equal(success, false, "updateDeps exceeding deps max size should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "dep size is over allowed size", "Failed with unexpected reason");
@@ -141,7 +141,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   function testUpdateDepsReplace0() public {
     deps1.pop(); // deps list is now of length 2.
 
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 1, deps1, false));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint32,uint32[],bool)", 1, deps1, false));
     Assert.ok(success, "oracle calls updateDeps externally should succeed");
     Assert.equal(projectDependencies[1].length, 2, "project 1 has 2 dependencies");
     Assert.equal(projectDependencies[1][0], 123, "project 1 has first dep 123");
@@ -153,9 +153,9 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   function testUpdateDepsAppend0() public {
     deps1.pop();
     deps1.pop();
-    deps1.push(uint16(125)); // deps list now consist of only a single element.
+    deps1.push(uint32(125)); // deps list now consist of only a single element.
 
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 1, deps1, false));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint32,uint32[],bool)", 1, deps1, false));
     Assert.ok(success, "oracle calls updateDeps to append externally should succeed");
     Assert.equal(projectDependencies[1].length, 3, "project 1 has 3 dependencies");
     Assert.equal(projectDependencies[1][0], 123, "project 1 has first dep 123");
@@ -164,13 +164,13 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   }
 
   /// test updateDeps in single function call
-  uint16[] deps2;
+  uint32[] deps2;
   /// #sender: account-1
   function testUpdateDepsReplace1() public {
-    deps2.push(uint16(234));
-    deps2.push(uint16(235));
+    deps2.push(uint32(234));
+    deps2.push(uint32(235));
 
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 2, deps2, false));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint32,uint32[],bool)", 2, deps2, false));
     Assert.ok(success, "oracle calls updateDeps to replace externally should succeed");
     Assert.equal(projectDependencies[2].length, 2, "project 2 has 2 dependencies");
     Assert.equal(projectDependencies[2][0], 234, "project 2 has first dep 234");
@@ -200,31 +200,38 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   /// #sender: account-3
   /// #value: 123
   function testDonateToProject1Request0Fail1() public payable {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("donateToProject(uint16,uint16)", 1, 0));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("donateToProject(uint32,uint32)", 1, 0));
     Assert.equal(success, false, "donate with occupied requestID should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "existing sponsorship request", "Failed with unexpected reason");
   }
 
+  uint256 beforeSponsorRequest1Balance;
   /// test value requirement on donateToProject
   /// #sender: account-3
-  /// #value: 0
   function testDonateToProject1Request0Fail2() public payable {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("donateToProject(uint16,uint16)", 1, 1));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("donateToProject(uint32,uint32)", 1, 1));
     Assert.equal(success, false, "donate with no value should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "no fund to donate", "Failed with unexpected reason");
+    beforeSponsorRequest1Balance = address(this).balance;
   }
 
+  uint256 beforeSponsorRequest2Balance;
   /// test donate to the same project with a different requestID
   /// #sender: account-3
   /// #value: 123
   function testDonateToProject1Request1() public payable {
     donateToProject(1, 1);
-    Assert.equal(address(this).balance, 846, "balance should be updated to 846");
-    // balance of "this" contract is 600+123+123 because the above failed test transferred fund to "this",
-    // the call will be reverted in the actual contract instance and the balance after a failed donateToProject()
-    // call should not change.
+    Assert.equal(address(this).balance, beforeSponsorRequest1Balance + 123, "balance should be increased by 123");
+    beforeSponsorRequest2Balance = address(this).balance;
+  }
+
+  /// #sender: account-4
+  /// #value: 100
+  function testDonateToProject2() public payable {
+    donateToProject(2, 2);
+    Assert.equal(address(this).balance, beforeSponsorRequest2Balance + 100, "balance should be increased by 100");
   }
 
   /// reset oracle to the test account for mocking the following tests called by the oracle.
@@ -236,7 +243,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   function testDistributeFail() public {
     Assert.equal(sponsorRequestAmounts[0], 600, "request should have 600 wei to be distributed");
   
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("distribute(uint16,uint256,uint256)", 0, 0, 1));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("distribute(uint32,uint256,uint256)", 0, 0, 1));
     Assert.equal(success, false, "distribute by a non oracle account should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "oracle only", "Failed with unexpected reason");
@@ -262,7 +269,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     Assert.equal(sponsorRequestAmounts[1], 123, "request should have a total of 123 wei to be distributed");
     Assert.equal(undistributedAmounts[1], 123, "request should have a remaining of 123 wei to be distributed");
 
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("distribute(uint16,uint256,uint256)", 1, 0, 0));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("distribute(uint32,uint256,uint256)", 1, 0, 0));
     Assert.equal(success, false, "distribute over allowed deps size should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "dep size is over allowed size", "Failed with unexpected reason");
@@ -276,7 +283,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   /// updateDeps should fail when there's a distribution in progress for the project
   /// #sender: account-1
   function testUpdateDepsFail() public {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint16,uint16[],bool)", 1, deps2, true));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateDeps(uint32,uint32[],bool)", 1, deps2, true));
     Assert.equal(success, false, "updateDeps when there's distribution in progress should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "sponsorship distribution in progress for project", "Failed with unexpected reason");
@@ -313,7 +320,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
 
   /// test onlyProjectOwner modifier on redeem
   function testRedeemFail() public {
-    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("redeem(uint16)", 1));
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("redeem(uint32)", 1));
     Assert.equal(success, false, "redeem by an account other than the project owner should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "project owner only", "Failed with unexpected reason");
@@ -324,5 +331,47 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     uint256 projectOwnerBalance = acc_project1_owner.balance;
     redeem(1);
     Assert.equal(projectOwnerBalance + 363, acc_project1_owner.balance, "project owner should receive distributed fund");
+  }
+
+  /// test onlyProjectOwner modifier on updateMigrationAddress
+  function testUpdateMigrationAddressFail() public {
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateMigrationAddress(uint32,address)", 2, acc_project2_owner));
+    Assert.equal(success, false, "updateMigrationAddress by an account other than the project owner should fail");
+    string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
+    Assert.equal(reason, "project owner only", "Failed with unexpected reason");
+  }
+
+  /// #sender: account-4
+  function testUpdateMigrationAddress() public {
+    updateMigrationAddress(2, acc_project2_owner);
+    Assert.equal(fundMigrations[2], acc_project2_owner, "Failed with unexpected reason");
+  }
+
+  /// test disabled requirement on migrateFunds
+  function testMigrateFundsFail1() public {
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("migrateFunds(uint32)", 2));
+    Assert.equal(success, false, "migrateFunds when contract is not disabled should fail");
+    string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
+    Assert.equal(reason, "when contract is disabled only", "Failed with unexpected reason");
+  }
+
+  /// test onlyOwner modifier on migrateFunds
+  /// #sender: account-1
+  function testMigrateFundsFail2() public {
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("migrateFunds(uint32)", 2));
+    Assert.equal(success, false, "migrateFunds called by a non owner account should fail");
+    string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
+    Assert.equal(reason, "owner only", "Failed with unexpected reason");
+  }
+
+  function disable() public {
+    disableContract();
+  }
+
+  function testMigrateFunds() public {
+    uint256 projectOwnerBalance = acc_project2_owner.balance;
+
+    migrateFunds(2);
+    Assert.equal(acc_project2_owner.balance, projectOwnerBalance + 100, "Locked fund should be migrated");
   }
 }

@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const web3_1 = __importDefault(require("web3"));
+const github_client_1 = require("./github-client");
 const Contract = require('web3-eth-contract');
 const web3Provider = new web3_1.default.providers.HttpProvider(`https://ropsten.infura.io/v3/2c77e96cffa447759bf958ee4cd8f9ad`);
 const web3 = new web3_1.default(web3Provider);
@@ -19,10 +20,10 @@ const mainPizzaAddress = '0xc6c0089249de98f5459cea44cab3deebc3ef3fce';
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
 async function main() {
-    const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call();
-    console.log(singleCallMaxDepsSize);
+    const dependenciesFromGithub = await (0, github_client_1.getDependencies)(516239052);
+    console.log(dependenciesFromGithub);
 }
-// main()           
+main();
 contract.events["RegisterEvent(uint16)"]()
     .on("connected", function (subId) {
     console.log("listening on event RegisterEvent");
@@ -33,7 +34,7 @@ contract.events["RegisterEvent(uint16)"]()
     try {
         console.log('Trying to call reply register...');
         console.log(contract.methods);
-        const ownerAddress = 0;
+        const ownerAddress = (0, github_client_1.getAddress)(projectID);
         // need to grab the address of the project owner
         var data = contract.methods["replyRegister(uint16,address)"](projectID, ownerAddress).encodeABI();
         const options = {
@@ -59,11 +60,11 @@ contract.events["DonateEvent(uint16)"]()
     const { requestID } = event.returnValues;
     const projectID = await pizzaContract.methods.sponsorRequests(requestID).call();
     // Here, we call github to grab the dependencies. Currently using a dummy array
-    const dummyDependenciesFromGithub = [1, 2, 3];
+    const dependenciesFromGithub = await (0, github_client_1.getDependencies)(projectID);
     // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
     const extractOnChainProjects = async () => {
         const arr = [];
-        await Promise.all(dummyDependenciesFromGithub.map(async (projectID) => {
+        await Promise.all(dependenciesFromGithub.map(async (projectID) => {
             const result = await pizzaContract.methods.projectOwners(projectID).call();
             result != 0 && arr.push(projectID);
         }));

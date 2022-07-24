@@ -1,4 +1,5 @@
 import Web3 from "web3"
+import { getAddress, getDependencies } from "./github-client";
 const Contract = require('web3-eth-contract');
 
 const web3Provider = new Web3.providers.HttpProvider(`https://ropsten.infura.io/v3/2c77e96cffa447759bf958ee4cd8f9ad`);
@@ -20,10 +21,10 @@ var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
 
 async function main() {
-    const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call()
-    console.log(singleCallMaxDepsSize)
+    const dependenciesFromGithub = await getDependencies(516239052)
+    console.log(dependenciesFromGithub)
 }   
-// main()           
+main()           
 
 contract!.events["RegisterEvent(uint16)"]()
     .on("connected", function (subId: any) {
@@ -37,8 +38,9 @@ contract!.events["RegisterEvent(uint16)"]()
             console.log('Trying to call reply register...')
             console.log(contract.methods)
 
-            const ownerAddress = 0
-
+            // Grab the address of the project owner from their github repo
+            const ownerAddress = getAddress(projectID)
+            
             // need to grab the address of the project owner
             var data = contract.methods["replyRegister(uint16,address)"](projectID, ownerAddress).encodeABI();
             const options = {
@@ -66,12 +68,12 @@ contract!.events["DonateEvent(uint16)"]()
         const projectID = await pizzaContract.methods.sponsorRequests(requestID).call()
         
         // Here, we call github to grab the dependencies. Currently using a dummy array
-        const dummyDependenciesFromGithub = [1, 2, 3]
+        const dependenciesFromGithub = await getDependencies(projectID)
 
         // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
         const extractOnChainProjects = async () => {
             const arr: number[] = []
-            await Promise.all(dummyDependenciesFromGithub.map(async (projectID) => {
+            await Promise.all(dependenciesFromGithub.map(async (projectID) => {
                 const result = await pizzaContract.methods.projectOwners(projectID).call()
                 result != 0 && arr.push(projectID)
             }))
@@ -124,7 +126,7 @@ contract!.events["DonateEvent(uint16)"]()
             const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
             const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
             console.log(transactionReceipt);
-
+            
             
         } catch (e) {
             console.log(e);

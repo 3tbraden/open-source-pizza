@@ -1,0 +1,1 @@
+export { getDependencies, getAddress } from './client';

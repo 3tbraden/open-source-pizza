@@ -33,3 +33,11 @@ truffle migrate --network development
 ```
 
 
+## Compile and Deploy listener
+```
+# make a .env from sample.env
+export $(xargs < .env)
+npx tsc && node build/oracleListener.js
+```
+
+

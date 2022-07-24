@@ -1,4 +1,4 @@
-import { DependencyInfo, NpmRegistryResponse, packageObject } from "./type";
+import { NpmRegistryResponse, packageObject } from "./type";
 import axios from "axios";
 import { Octokit } from "@octokit/rest";
 import { GetResponseDataTypeFromEndpointMethod, OctokitResponse, RequestError } from "@octokit/types"
@@ -38,7 +38,7 @@ const get_file = async (id: number, file: string): Promise<ContentResponse> => {
   });
 };
 
-export const getDependencies = async (id: number, ids: number[]): Promise<DependencyInfo> => {
+export const getDependencies = async (id: number): Promise<number[]> => {
   const file = await get_file(id, 'package.json')
   const data = file.data;
   type keys = keyof typeof data;
@@ -52,17 +52,7 @@ export const getDependencies = async (id: number, ids: number[]): Promise<Depend
     await getDependencyList(package_obj.dependencies, list)
   }
 
-  if (list.sort().join() === ids.sort().join()) {
-    return {
-      updated: false,
-      ids: [],
-    }
-  }
-
-  return {
-    updated: true,
-    ids: list,
-  };
+  return list;
 };
 
 export const getAddress = async (id: number): Promise<string> => {

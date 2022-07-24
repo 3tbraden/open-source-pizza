@@ -7,8 +7,3 @@ export interface NpmRegistryResponse {
 export interface packageObject {
     dependencies: object,
 }
-
-export interface DependencyInfo {
-    updated: boolean,
-    ids: number[],
-}

@@ -15,31 +15,26 @@ const privateKey = '0x1be9fb140547fbc23da661d283db717caf265a97bae49e248206023cc7
 // set provider for all later instances to use
 Contract.setProvider('wss://ropsten.infura.io/ws/v3/2c77e96cffa447759bf958ee4cd8f9ad');
 // const caller = "0x557FD57ca1855913e457DA28fF3E033B0c653700";
-const oracleAddress = "0x146afe4c90a2be19b3784351c8f36357b27c8b8d";
-const mainPizzaAddress = '0xc6c0089249de98f5459cea44cab3deebc3ef3fce';
+const oracleAddress = "0xa6a4a5d19327b575861466b0fa532833fa84b602";
+const mainPizzaAddress = '0x0681ef84916faf655d7702783653cde2c863583c';
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
+/*
+// // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
+        // const extractOnChainProjects = async () => {
+        //     const arr: number[] = []
+        //     await Promise.all(dependenciesFromGithub.map(async (projectID) => {
+        //         const result = await pizzaContract.methods.projectOwners(projectID).call()
+        //         result != 0 && arr.push(projectID)
+        //     }))
+        //     return arr;
+        // }
+        // const resultToReturn = await extractOnChainProjects()
+*/
 async function main() {
-    const singleCallMaxDepsSize = 8;
-    var lowerIndex = 0;
-    const resultToReturn = [0, 1];
-    for (var i = 0; i < resultToReturn.length; i++) {
-        if (((i + 1) % singleCallMaxDepsSize == 0) || ((i + 1) == resultToReturn.length)) {
-            // var data = contract.methods["replyDonateDistribute(uint16,uint,uint)"](5, lowerIndex, i).encodeABI();
-            // const options = {
-            //     to: oracleAddress,
-            //     data: data,
-            //     gas: '100000',
-            // }
-            // const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
-            // const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-            console.log(`lowerIndex: ${lowerIndex}: i: ${i}`);
-            lowerIndex = i + 1;
-        }
-    }
 }
-main();
-contract.events["RegisterEvent(uint16)"]()
+// main()           
+contract.events["RegisterEvent(uint32)"]()
     .on("connected", function (subId) {
     console.log("listening on event RegisterEvent");
 })
@@ -50,9 +45,10 @@ contract.events["RegisterEvent(uint16)"]()
         console.log('Trying to call reply register...');
         console.log(contract.methods);
         // Grab the address of the project owner from their github repo
-        const ownerAddress = (0, github_client_1.getAddress)(projectID);
+        const ownerAddress = await (0, github_client_1.getAddress)(projectID);
+        console.log(`ownerAddress: ${ownerAddress}`);
         // need to grab the address of the project owner
-        var data = contract.methods["replyRegister(uint16,address)"](projectID, ownerAddress).encodeABI();
+        var data = contract.methods["replyRegister(uint32,address)"](projectID, ownerAddress).encodeABI();
         const options = {
             to: oracleAddress,
             data: data,
@@ -67,7 +63,7 @@ contract.events["RegisterEvent(uint16)"]()
     }
 });
 // Donate Event
-contract.events["DonateEvent(uint16)"]()
+contract.events["DonateEvent(uint32)"]()
     .on("connected", function (subId) {
     console.log("listening on event DonateEvent");
 })
@@ -75,82 +71,73 @@ contract.events["DonateEvent(uint16)"]()
     console.log('DonateEvent event received...');
     const { requestID } = event.returnValues;
     const projectID = await pizzaContract.methods.sponsorRequests(requestID).call();
-    // Here, we call github to grab the dependencies. Currently using a dummy array
-    const dependenciesFromGithub = await (0, github_client_1.getDependencies)(projectID);
-    // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
-    const extractOnChainProjects = async () => {
-        const arr = [];
-        await Promise.all(dependenciesFromGithub.map(async (projectID) => {
-            const result = await pizzaContract.methods.projectOwners(projectID).call();
-            result != 0 && arr.push(projectID);
-        }));
-        return arr;
-    };
-    const resultToReturn = await extractOnChainProjects();
-    // Grabbing the list of dependencies for the project on chain ---> mapping(uint16 => uint16[]) public projectDependencies;
-    const getExistingDependencies = async () => {
-        const res = [];
-        var i = 0;
-        while (true) {
-            try {
-                const result = await pizzaContract.methods.projectDependencies(projectID, i).call();
-                res.push(result);
-                i += 1;
-            }
-            catch (e) {
-                return res;
-            }
-        }
-    };
-    const existingDependenciesOnChain = await getExistingDependencies();
-    /* Now, we check whether the dependencies have changed to evaluate the isReplace boolean.
-       If the lengths are not the same, they have changed, or if they are different at any given index, they have changed */
-    var hasChanged = false;
-    if (resultToReturn.length != existingDependenciesOnChain.length) {
-        hasChanged = true;
-    }
-    else {
-        for (var i = 0; i < resultToReturn.length; i++) {
-            if (resultToReturn[i] != existingDependenciesOnChain[i]) {
-                hasChanged = true;
-                break;
-            }
-        }
-    }
-    try {
-        console.log('Trying to call replyDonateUpdateDeps...');
-        // Check whether a distribution is in progress
-        // const isDistributionInProgress = await pizzaContract.methods.distributionInProgress(projectID).call()   
-        var data = contract.methods["replyDonateUpdateDeps(uint16,uint16[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
-        const options = {
-            to: oracleAddress,
-            data: data,
-            gas: '100000',
-        };
-        const signedTransaction = await web3.eth.accounts.signTransaction(options, privateKey);
-        const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-        console.log(transactionReceipt);
-    }
-    catch (e) {
-        console.log(e);
-    }
+    // // Here, we call github to grab the dependencies. Currently using a dummy array
+    // const resultToReturn = await getDependencies(projectID)
+    // // Grabbing the list of dependencies for the project on chain ---> mapping(uint32 => uint32[]) public projectDependencies;
+    // const getExistingDependencies = async () => {
+    //     const res: number[] = []
+    //     var i = 0;
+    //     while (true) {
+    //         try {
+    //             const result = await pizzaContract.methods.projectDependencies(projectID, i).call();
+    //             res.push(result)
+    //             i += 1
+    //         } catch (e) {
+    //             return res
+    //         }
+    //     }
+    // }
+    // const existingDependenciesOnChain: number[] = await getExistingDependencies()
+    // /* Now, we check whether the dependencies have changed to evaluate the isReplace boolean.
+    //    If the lengths are not the same, they have changed, or if they are different at any given index, they have changed */
+    // var hasChanged = false
+    // if (resultToReturn.length != existingDependenciesOnChain.length) {
+    //     hasChanged = true
+    // } else {
+    //     for (var i = 0; i < resultToReturn.length; i++) {
+    //         if (resultToReturn[i] != existingDependenciesOnChain[i]) {
+    //             hasChanged = true;
+    //             break;
+    //         }
+    //     }
+    // }
+    // console.log(`hasChanged: ${hasChanged}`)
+    // if (hasChanged) {
+    //     try {
+    //         console.log('Trying to call replyDonateUpdateDeps...')
+    //         // TODO: Check whether a distribution is in progress
+    //         var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
+    //         const options = {
+    //             to: oracleAddress,
+    //             data: data,
+    //             gas: '100000',
+    //         }
+    //         const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
+    //         const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+    //         console.log(`Reply donate update deps transaction receipt: ${transactionReceipt}`);
+    //     } catch (e) {
+    //         console.log(e);
+    //     }
+    // }
+    const resultToReturn = [517240368, 516238027, 516235362];
     // Now to call replyDonateDistribute
     try {
         // Split up the response dependant on singleCallMaxDepsSize
+        console.log('Calling replyDonateDistribute...');
         const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call();
         var lowerIndex = 0;
         for (var i = 0; i < resultToReturn.length; i++) {
-            if (i + 1 % singleCallMaxDepsSize == 0) {
-                var data = contract.methods["replyDonateDistribute(uint16,uint,uint)"](projectID, lowerIndex, i).encodeABI();
+            if (((i + 1) % singleCallMaxDepsSize == 0) || ((i + 1) == resultToReturn.length)) {
+                console.log(`projectID: ${projectID}, lowerIndex: ${lowerIndex}, i: ${i}`);
+                var data = contract.methods["replyDonateDistribute(uint32,uint256,uint256)"](requestID, lowerIndex, i).encodeABI();
                 const options = {
                     to: oracleAddress,
                     data: data,
-                    gas: '100000',
+                    gas: '1000000',
                 };
+                lowerIndex = i + 1;
                 const signedTransaction = await web3.eth.accounts.signTransaction(options, privateKey);
                 const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-                console.log(`lowerIndex: ${lowerIndex}: i: ${i}`);
-                lowerIndex = i;
             }
         }
     }

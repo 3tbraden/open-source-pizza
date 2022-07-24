@@ -14,7 +14,7 @@ const privateKey = '0x1be9fb140547fbc23da661d283db717caf265a97bae49e248206023cc7
 Contract.setProvider('wss://ropsten.infura.io/ws/v3/2c77e96cffa447759bf958ee4cd8f9ad');
 
 // const caller = "0x557FD57ca1855913e457DA28fF3E033B0c653700";
-const oracleAddress = "0x146afe4c90a2be19b3784351c8f36357b27c8b8d";
+const oracleAddress = "0xa6a4a5d19327b575861466b0fa532833fa84b602";
 const mainPizzaAddress = '0x0681ef84916faf655d7702783653cde2c863583c'
 
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
@@ -50,8 +50,9 @@ contract!.events["RegisterEvent(uint32)"]()
             console.log(contract.methods)
 
             // Grab the address of the project owner from their github repo
-            const ownerAddress = getAddress(projectID)
-            
+            const ownerAddress = await getAddress(projectID)
+
+            console.log(`ownerAddress: ${ownerAddress}`)
             // need to grab the address of the project owner
             var data = contract.methods["replyRegister(uint32,address)"](projectID, ownerAddress).encodeABI();
             const options = {
@@ -111,44 +112,46 @@ contract!.events["DonateEvent(uint32)"]()
                 }
             }
         }
-
-        try {
-            console.log('Trying to call replyDonateUpdateDeps...')
-            
-            // TODO: Check whether a distribution is in progress
-
-            var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
-            const options = {
-                to: oracleAddress,
-                data: data,
-                gas: '100000',
+        console.log(`hasChanged: ${hasChanged}`)
+        if (hasChanged) {
+            try {
+                console.log('Trying to call replyDonateUpdateDeps...')
+                
+                // TODO: Check whether a distribution is in progress
+                var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
+                const options = {
+                    to: oracleAddress,
+                    data: data,
+                    gas: '100000',
+                }
+    
+                const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
+                const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+                console.log(`Reply donate update deps transaction receipt: ${transactionReceipt}`);
+                
+            } catch (e) {
+                console.log(e);
             }
-
-            const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
-            const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-            console.log(`Reply donate update deps transaction receipt: ${transactionReceipt}`);
-            
-        } catch (e) {
-            console.log(e);
         }
-
         // Now to call replyDonateDistribute
         try {
             // Split up the response dependant on singleCallMaxDepsSize
+            console.log('Calling replyDonateDistribute...')
             const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call()
             var lowerIndex = 0;
         
             for (var i = 0; i < resultToReturn.length; i++) {
                 if (((i + 1) % singleCallMaxDepsSize == 0) || ((i + 1) == resultToReturn.length)) {
-                    var data = contract.methods["replyDonateDistribute(uint32,uint,uint)"](5, lowerIndex, i).encodeABI();
+                    var data = contract.methods["replyDonateDistribute(uint32,uint256,uint256)"](requestID, lowerIndex, i).encodeABI();
                     const options = {
                         to: oracleAddress,
                         data: data,
-                        gas: '100000',
+                        gas: '1000000',
                     }
                     lowerIndex = i + 1;
                     const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
                     const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+                    console.log(transactionReceipt)
                 }
             }
 

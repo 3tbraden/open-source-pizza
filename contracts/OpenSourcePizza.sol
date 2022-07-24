@@ -179,12 +179,14 @@ contract OpenSourcePizza is OSPOracleClient {
   }
 
   // Transfer locked fund in case of contract migration.
-  function migrateFunds(uint16 projectID) public onlyOwner {
+  function migrateFunds(uint16 requestID) public payable onlyOwner {
     require(disabled, "when contract is disabled only");
-    require(distribution[projectID] > 0, "no fund for project");
+    uint16 projectID = sponsorRequests[requestID];
+    require(projectID > 0, "no project for request");
+    require(undistributedAmounts[requestID] > 0, "no locked fund for request");
     require(fundMigrations[projectID] != address(0), "invalid migration address");
 
-    (bool ok, bytes memory result) = payable(fundMigrations[projectID]).call{value: distribution[projectID]}("");
+    (bool ok, bytes memory result) = payable(payable(fundMigrations[projectID])).call{value: undistributedAmounts[requestID]}("");
     require(ok, "fund migration error");
   }
 }

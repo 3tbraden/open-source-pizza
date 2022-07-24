@@ -206,25 +206,32 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     Assert.equal(reason, "existing sponsorship request", "Failed with unexpected reason");
   }
 
+  uint256 beforeSponsorRequest1Balance;
   /// test value requirement on donateToProject
   /// #sender: account-3
-  /// #value: 0
   function testDonateToProject1Request0Fail2() public payable {
     (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("donateToProject(uint16,uint16)", 1, 1));
     Assert.equal(success, false, "donate with no value should fail");
     string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
     Assert.equal(reason, "no fund to donate", "Failed with unexpected reason");
+    beforeSponsorRequest1Balance = address(this).balance;
   }
 
+  uint256 beforeSponsorRequest2Balance;
   /// test donate to the same project with a different requestID
   /// #sender: account-3
   /// #value: 123
   function testDonateToProject1Request1() public payable {
     donateToProject(1, 1);
-    Assert.equal(address(this).balance, 846, "balance should be updated to 846");
-    // balance of "this" contract is 600+123+123 because the above failed test transferred fund to "this",
-    // the call will be reverted in the actual contract instance and the balance after a failed donateToProject()
-    // call should not change.
+    Assert.equal(address(this).balance, beforeSponsorRequest1Balance + 123, "balance should be increased by 123");
+    beforeSponsorRequest2Balance = address(this).balance;
+  }
+
+  /// #sender: account-4
+  /// #value: 100
+  function testDonateToProject2() public payable {
+    donateToProject(2, 2);
+    Assert.equal(address(this).balance, beforeSponsorRequest2Balance + 100, "balance should be increased by 100");
   }
 
   /// reset oracle to the test account for mocking the following tests called by the oracle.
@@ -324,5 +331,47 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     uint256 projectOwnerBalance = acc_project1_owner.balance;
     redeem(1);
     Assert.equal(projectOwnerBalance + 363, acc_project1_owner.balance, "project owner should receive distributed fund");
+  }
+
+  /// test onlyProjectOwner modifier on updateMigrationAddress
+  function testUpdateMigrationAddressFail() public {
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("updateMigrationAddress(uint16,address)", 2, acc_project2_owner));
+    Assert.equal(success, false, "updateMigrationAddress by an account other than the project owner should fail");
+    string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
+    Assert.equal(reason, "project owner only", "Failed with unexpected reason");
+  }
+
+  /// #sender: account-4
+  function testUpdateMigrationAddress() public {
+    updateMigrationAddress(2, acc_project2_owner);
+    Assert.equal(fundMigrations[2], acc_project2_owner, "Failed with unexpected reason");
+  }
+
+  /// test disabled requirement on migrateFunds
+  function testMigrateFundsFail1() public {
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("migrateFunds(uint16)", 2));
+    Assert.equal(success, false, "migrateFunds when contract is not disabled should fail");
+    string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
+    Assert.equal(reason, "when contract is disabled only", "Failed with unexpected reason");
+  }
+
+  /// test onlyOwner modifier on migrateFunds
+  /// #sender: account-1
+  function testMigrateFundsFail2() public {
+    (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("migrateFunds(uint16)", 2));
+    Assert.equal(success, false, "migrateFunds called by a non owner account should fail");
+    string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
+    Assert.equal(reason, "owner only", "Failed with unexpected reason");
+  }
+
+  function disable() public {
+    disableContract();
+  }
+
+  function testMigrateFunds() public {
+    uint256 projectOwnerBalance = acc_project2_owner.balance;
+
+    migrateFunds(2);
+    Assert.equal(acc_project2_owner.balance, projectOwnerBalance + 100, "Locked fund should be migrated");
   }
 }

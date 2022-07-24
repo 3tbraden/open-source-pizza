@@ -20,8 +20,23 @@ const mainPizzaAddress = '0xc6c0089249de98f5459cea44cab3deebc3ef3fce';
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
 async function main() {
-    const dependenciesFromGithub = await (0, github_client_1.getDependencies)(516239052);
-    console.log(dependenciesFromGithub);
+    const singleCallMaxDepsSize = 8;
+    var lowerIndex = 0;
+    const resultToReturn = [0, 1];
+    for (var i = 0; i < resultToReturn.length; i++) {
+        if (((i + 1) % singleCallMaxDepsSize == 0) || ((i + 1) == resultToReturn.length)) {
+            // var data = contract.methods["replyDonateDistribute(uint16,uint,uint)"](5, lowerIndex, i).encodeABI();
+            // const options = {
+            //     to: oracleAddress,
+            //     data: data,
+            //     gas: '100000',
+            // }
+            // const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
+            // const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+            console.log(`lowerIndex: ${lowerIndex}: i: ${i}`);
+            lowerIndex = i + 1;
+        }
+    }
 }
 main();
 contract.events["RegisterEvent(uint16)"]()
@@ -34,6 +49,7 @@ contract.events["RegisterEvent(uint16)"]()
     try {
         console.log('Trying to call reply register...');
         console.log(contract.methods);
+        // Grab the address of the project owner from their github repo
         const ownerAddress = (0, github_client_1.getAddress)(projectID);
         // need to grab the address of the project owner
         var data = contract.methods["replyRegister(uint16,address)"](projectID, ownerAddress).encodeABI();
@@ -103,7 +119,8 @@ contract.events["DonateEvent(uint16)"]()
     }
     try {
         console.log('Trying to call replyDonateUpdateDeps...');
-        // need to grab the address of the project owner
+        // Check whether a distribution is in progress
+        // const isDistributionInProgress = await pizzaContract.methods.distributionInProgress(projectID).call()   
         var data = contract.methods["replyDonateUpdateDeps(uint16,uint16[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
         const options = {
             to: oracleAddress,
@@ -119,8 +136,23 @@ contract.events["DonateEvent(uint16)"]()
     }
     // Now to call replyDonateDistribute
     try {
+        // Split up the response dependant on singleCallMaxDepsSize
         const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call();
-        console.log(singleCallMaxDepsSize);
+        var lowerIndex = 0;
+        for (var i = 0; i < resultToReturn.length; i++) {
+            if (i + 1 % singleCallMaxDepsSize == 0) {
+                var data = contract.methods["replyDonateDistribute(uint16,uint,uint)"](projectID, lowerIndex, i).encodeABI();
+                const options = {
+                    to: oracleAddress,
+                    data: data,
+                    gas: '100000',
+                };
+                const signedTransaction = await web3.eth.accounts.signTransaction(options, privateKey);
+                const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+                console.log(`lowerIndex: ${lowerIndex}: i: ${i}`);
+                lowerIndex = i;
+            }
+        }
     }
     catch (err) {
         console.log(err);

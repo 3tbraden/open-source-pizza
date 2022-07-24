@@ -18,28 +18,11 @@ const oracleAddress = "0x146afe4c90a2be19b3784351c8f36357b27c8b8d";
 const mainPizzaAddress = '0xc6c0089249de98f5459cea44cab3deebc3ef3fce';
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
-const dummyAddress = '0xef0F564ef485AA83cdaEd5B7Dfe7784A5dd272F9'; // this grabs the project from the github API
 async function main() {
-    // helper to call functions for quick executions
-    var isChanged = true;
-    try {
-        console.log('Trying to call replyDonateUpdateDeps...');
-        // need to grab the address of the project owner
-        var data = contract.methods["replyDonateUpdateDeps(uint16,uint16[],bool)"](5, [3], isChanged).encodeABI();
-        const options = {
-            to: oracleAddress,
-            data: data,
-            gas: '100000',
-        };
-        const signedTransaction = await web3.eth.accounts.signTransaction(options, privateKey);
-        const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-        console.log(transactionReceipt);
-    }
-    catch (e) {
-        console.log(e);
-    }
+    const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call();
+    console.log(singleCallMaxDepsSize);
 }
-main();
+// main()           
 contract.events["RegisterEvent(uint16)"]()
     .on("connected", function (subId) {
     console.log("listening on event RegisterEvent");
@@ -50,8 +33,9 @@ contract.events["RegisterEvent(uint16)"]()
     try {
         console.log('Trying to call reply register...');
         console.log(contract.methods);
+        const ownerAddress = 0;
         // need to grab the address of the project owner
-        var data = contract.methods["replyRegister(uint16,address)"](projectID, dummyAddress).encodeABI();
+        var data = contract.methods["replyRegister(uint16,address)"](projectID, ownerAddress).encodeABI();
         const options = {
             to: oracleAddress,
             data: data,
@@ -65,6 +49,7 @@ contract.events["RegisterEvent(uint16)"]()
         console.log(e);
     }
 });
+// Donate Event
 contract.events["DonateEvent(uint16)"]()
     .on("connected", function (subId) {
     console.log("listening on event DonateEvent");
@@ -75,8 +60,8 @@ contract.events["DonateEvent(uint16)"]()
     const projectID = await pizzaContract.methods.sponsorRequests(requestID).call();
     // Here, we call github to grab the dependencies. Currently using a dummy array
     const dummyDependenciesFromGithub = [1, 2, 3];
-    // Iterates through the dependencies of the project and returns only the ones that exist in the contract
-    const extractProjects = async () => {
+    // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
+    const extractOnChainProjects = async () => {
         const arr = [];
         await Promise.all(dummyDependenciesFromGithub.map(async (projectID) => {
             const result = await pizzaContract.methods.projectOwners(projectID).call();
@@ -84,23 +69,59 @@ contract.events["DonateEvent(uint16)"]()
         }));
         return arr;
     };
-    const resultToReturn = await extractProjects();
-    console.log(resultToReturn);
-    // TODO: now, check whether dependencies have changed
-    // var isChanged = true;
-    // try {
-    //     console.log('Trying to call replyDonateUpdateDeps...')
-    //     // need to grab the address of the project owner
-    //     var data = contract.methods["replyDonateUpdateDeps(uint16, uint16[], bool)"](projectID, resultToReturn, isChanged).encodeABI();
-    //     const options = {
-    //         to: oracleAddress,
-    //         data: data,
-    //         gas: '100000',
-    //     }
-    //     const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
-    //     const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-    //     console.log(transactionReceipt);
-    // } catch (e) {
-    //     console.log(e);
-    // }
+    const resultToReturn = await extractOnChainProjects();
+    // Grabbing the list of dependencies for the project on chain ---> mapping(uint16 => uint16[]) public projectDependencies;
+    const getExistingDependencies = async () => {
+        const res = [];
+        var i = 0;
+        while (true) {
+            try {
+                const result = await pizzaContract.methods.projectDependencies(projectID, i).call();
+                res.push(result);
+                i += 1;
+            }
+            catch (e) {
+                return res;
+            }
+        }
+    };
+    const existingDependenciesOnChain = await getExistingDependencies();
+    /* Now, we check whether the dependencies have changed to evaluate the isReplace boolean.
+       If the lengths are not the same, they have changed, or if they are different at any given index, they have changed */
+    var hasChanged = false;
+    if (resultToReturn.length != existingDependenciesOnChain.length) {
+        hasChanged = true;
+    }
+    else {
+        for (var i = 0; i < resultToReturn.length; i++) {
+            if (resultToReturn[i] != existingDependenciesOnChain[i]) {
+                hasChanged = true;
+                break;
+            }
+        }
+    }
+    try {
+        console.log('Trying to call replyDonateUpdateDeps...');
+        // need to grab the address of the project owner
+        var data = contract.methods["replyDonateUpdateDeps(uint16,uint16[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
+        const options = {
+            to: oracleAddress,
+            data: data,
+            gas: '100000',
+        };
+        const signedTransaction = await web3.eth.accounts.signTransaction(options, privateKey);
+        const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+        console.log(transactionReceipt);
+    }
+    catch (e) {
+        console.log(e);
+    }
+    // Now to call replyDonateDistribute
+    try {
+        const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call();
+        console.log(singleCallMaxDepsSize);
+    }
+    catch (err) {
+        console.log(err);
+    }
 });

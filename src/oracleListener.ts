@@ -2,20 +2,18 @@ import Web3 from "web3"
 import { getAddress, getDependencies } from "./github-client";
 const Contract = require('web3-eth-contract');
 
-const web3Provider = new Web3.providers.HttpProvider(`https://ropsten.infura.io/v3/2c77e96cffa447759bf958ee4cd8f9ad`);
+const web3Provider = new Web3.providers.HttpProvider(process.env.BLOCKCHAIN_CONNECTION_WSS as string);
 const web3 = new Web3(web3Provider); 
 
 const OpenSourcePizzaOracle = require('./contracts/OpenSourcePizzaOracle.json');
 const OpenSourcePizza = require('./contracts/OpenSourcePizza.json');
 
-const owner = '0xef0f564EF485aA83cdaeD5b7Dfe7784a5DD272c7'
-const privateKey = '0x1be9fb140547fbc23da661d283db717caf265a97bae49e248206023cc7e164fa'
+const privateKey = process.env.ORACLE_PRIV as string;
 // set provider for all later instances to use
-Contract.setProvider('wss://ropsten.infura.io/ws/v3/2c77e96cffa447759bf958ee4cd8f9ad');
+Contract.setProvider(process.env.BLOCKCHAIN_CONNECTION_HTTPS);
 
-// const caller = "0x557FD57ca1855913e457DA28fF3E033B0c653700";
-const oracleAddress = "0xa6a4a5d19327b575861466b0fa532833fa84b602";
-const mainPizzaAddress = '0x0681ef84916faf655d7702783653cde2c863583c'
+const oracleAddress = process.env.ORACLE_CONTRACT;
+const mainPizzaAddress = process.env.PIZZA_CONTRACT;
 
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
@@ -32,10 +30,6 @@ var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
         // }
         // const resultToReturn = await extractOnChainProjects()
 */
-
-async function main() {
-}   
-// main()           
 
 contract!.events["RegisterEvent(uint32)"]()
     .on("connected", function (subId: any) {
@@ -128,7 +122,6 @@ contract!.events["DonateEvent(uint32)"]()
                 const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
                 const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
                 console.log(`Reply donate update deps transaction receipt: ${transactionReceipt}`);
-                
             } catch (e) {
                 console.log(e);
             }
@@ -158,5 +151,4 @@ contract!.events["DonateEvent(uint32)"]()
         } catch (err) {
             console.log(err)
         }
-
     });

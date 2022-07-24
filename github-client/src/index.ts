@@ -1,2 +1,2 @@
-export { getDependencies, getAccount } from './client';
+export { getDependencies, getAddress } from './client';
 export { DependencyInfo } from './type';

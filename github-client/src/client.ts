@@ -65,23 +65,23 @@ export const getDependencies = async (id: number, ids: number[]): Promise<Depend
   };
 };
 
-export const getAccount = async (id: number): Promise<string> => {
+export const getAddress = async (id: number): Promise<string> => {
   var file: Content;
-  var account: string = "";
+  var address: string = "";
   try {
-    file = await get_file(id, "account.txt");
+    file = await get_file(id, "address.pizza");
     const data = file!.data;
     type keys = keyof typeof data;
     const content = await axios.get(
       data['download_url' as keys], { method: "GET" }
     ).then((res) => res.data);
-    account = content.trim();
+    address = content.trim();
   } catch (err: any) {
     if (err.status === 404) {
-      account = "";
+      address = "";
     }
   } finally {
-    return account;
+    return address;
   }
 }
 
@@ -103,4 +103,4 @@ const getDependencyList = async (dependencies: object, list: number[]) => {
   }
 }
 
-getDependencies(516239052, [516235362,516238027]).then((res) => console.log(res));
+// getDependencies(516239052, [516235362,516238027]).then((res) => console.log(res));

@@ -77,11 +77,12 @@ contract!.events["DonateEvent(uint16)"]()
 
         // TODO: now, check whether dependencies have changed
         var isChanged = true;
+        
         try {
             console.log('Trying to call replyDonateUpdateDeps...')
 
             // need to grab the address of the project owner
-            var data = contract.methods["replyDonateUpdateDeps(uint16, uint16[], bool)"](projectID, resultToReturn, isChanged).encodeABI();
+            var data = contract.methods["replyDonateUpdateDeps(uint16,uint16[],bool)"](projectID, resultToReturn, isChanged).encodeABI();
             const options = {
                 to: oracleAddress,
                 data: data,

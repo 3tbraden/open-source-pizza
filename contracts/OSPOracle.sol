@@ -3,56 +3,52 @@ pragma solidity >=0.4.22 <0.9.0;
 
 interface OSPOracleInterface {
   function requestRegister(uint16 projectID) external;
-  function requestDepsSync(uint16 projectID) external;
+  function requestDonate(uint16 requestID) external;
 }
 
 abstract contract OSPOracle is OSPOracleInterface {
-  address _caller;
+  address public owner;
+  address public caller;
 
   event RegisterEvent(uint16 projectID);
-  event SyncEvent(uint16 projectID);
+  event DonateEvent(uint16 requestID);
 
-  constructor(address caller) {
-    _caller = caller;
+  constructor(address c) {
+    owner = msg.sender;
+    caller = c;
   }
  
-  function requestRegister(uint16 projectID) external {
+  function requestRegister(uint16 projectID) override external {
     emit RegisterEvent(projectID);
   }
 
-  function requestDepsSync(uint16 projectID) external {
-    emit SyncEvent(projectID);
+  function requestDonate(uint16 requestID) override external {
+    emit DonateEvent(requestID);
   }
 
-  function replyRegister(uint16 projectID, address addr) external {
-    OSPOracleClient(_caller).registerProject(projectID, addr);
-  }
-
-  function replySyncDistribute(uint16 projectID) external {
-    OSPOracleClient(_caller).distribute(projectID);
-  }
-
-  function replySyncUpdateAndDistribute(uint16 projectID, uint16[] calldata deps) external {
-    OSPOracleClient(_caller).updateDepsAndDistribute(projectID, deps);
-  }
+  function replyRegister(uint16 projectID, address addr) public virtual;
+  function replyDonateUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) public virtual;
+  function replyDonateDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
 }
 
 abstract contract OSPOracleClient {
-  address _oracle;
+  address public owner;
+  address public oracle;
 
-  constructor(address oracle) {
-    _oracle = oracle;
+  constructor() {
+    owner = msg.sender;
   }
 
   function requestRegisterFromOracle(uint16 projectID) internal {
-    OSPOracleInterface(_oracle).requestRegister(projectID);
+    OSPOracleInterface(oracle).requestRegister(projectID);
   }
 
-  function requestDonateFromOracle(uint16 projectID) internal {
-    OSPOracleInterface(_oracle).requestDepsSync(projectID);
+  function requestDonateFromOracle(uint16 requestID) internal {
+    OSPOracleInterface(oracle).requestDonate(requestID);
   }
 
-  function registerProject(uint16 projectID, address addr) external virtual;
-  function distribute(uint16 projectID) public virtual;
-  function updateDepsAndDistribute(uint16 projectID, uint16[] calldata deps) external virtual;
+  function updateOracle(address oc) public virtual;
+  function registerProject(uint16 projectID, address addr) public virtual;
+  function distribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) public virtual;
+  function updateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) external virtual;
 }

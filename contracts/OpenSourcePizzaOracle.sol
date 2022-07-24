@@ -4,23 +4,30 @@ pragma solidity >=0.4.22 <0.9.0;
 import "./OSPOracle.sol";
 
 contract OpenSourcePizzaOracle is OSPOracle {
-  address _owner;
-  address _caller;
-
   modifier onlyOwner {
-    require(msg.sender == _owner);
+    require(msg.sender == owner, "owner only");
     _;
   }
 
-  constructor(address caller) OSPOracle(caller) {
-    _owner = msg.sender;
+  constructor(address caller) OSPOracle(caller) {}
+
+  function updateCaller(address c) public onlyOwner {
+    caller = c;
   }
 
-  function updateCaller(address caller) external onlyOwner {
-    _caller = caller;
+  function replyRegister(uint16 projectID, address addr) override public onlyOwner {
+    OSPOracleClient(caller).registerProject(projectID, addr);
+  }
+
+  function replyDonateUpdateDeps(uint16 projectID, uint16[] calldata deps, bool isReplace) override public onlyOwner {
+    OSPOracleClient(caller).updateDeps(projectID, deps, isReplace);
+  }
+
+  function replyDonateDistribute(uint16 requestID, uint fromDepIdx, uint toDepIdx) override public onlyOwner {
+    OSPOracleClient(caller).distribute(requestID, fromDepIdx, toDepIdx);
   }
 
   function shutdown() external onlyOwner {
-    selfdestruct(payable(_owner));
+    selfdestruct(payable(owner));
   }
 }

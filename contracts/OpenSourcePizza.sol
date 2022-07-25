@@ -115,6 +115,19 @@ contract OpenSourcePizza is OSPOracleClient {
     require(undistributedAmounts[requestID] > 0, "invalid sponsorship request");
 
     uint32 sourceProjectID = sponsorRequests[requestID];
+    if (projectDependencies[sourceProjectID].length == 0) {
+      // Give source project owner all the fund given no deps.
+      (bool ok, uint256 newBalance) = SafeMath.tryAdd(distribution[sourceProjectID], undistributedAmounts[requestID]);
+      require(ok, "distribute balance error");
+      distribution[sourceProjectID] = newBalance;
+
+      // Reset request params.
+      sponsorRequests[requestID] = 0;
+      sponsorRequestAmounts[requestID] = 0;
+      undistributedAmounts[requestID] = 0;
+      distributionInProgress[sourceProjectID] -= 1;
+    }
+
     if (toDepIdx == 0) {
       // Distribute among the entire dependency list.
       fromDepIdx = 0;

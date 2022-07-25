@@ -18,19 +18,6 @@ const mainPizzaAddress = process.env.PIZZA_CONTRACT;
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
 
-/* 
-// // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
-        // const extractOnChainProjects = async () => {
-        //     const arr: number[] = []
-        //     await Promise.all(dependenciesFromGithub.map(async (projectID) => {
-        //         const result = await pizzaContract.methods.projectOwners(projectID).call()
-        //         result != 0 && arr.push(projectID)
-        //     }))
-        //     return arr;
-        // }
-        // const resultToReturn = await extractOnChainProjects()
-*/
-
 const checkUntilDistributionHasEnded = async (projectID: number) => {
     console.log('A distribution is currently in progress... entering an interval to keep evaluating this every 30 seconds')
                 

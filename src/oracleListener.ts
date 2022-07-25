@@ -2,7 +2,7 @@ import Web3 from "web3"
 import { getAddress, getDependencies } from "./github-client";
 const Contract = require('web3-eth-contract');
 
-const web3Provider = new Web3.providers.HttpProvider(process.env.BLOCKCHAIN_CONNECTION_WSS as string);
+const web3Provider = new Web3.providers.HttpProvider(process.env.BLOCKCHAIN_CONNECTION_HTTPS as string);
 const web3 = new Web3(web3Provider); 
 
 const OpenSourcePizzaOracle = require('./contracts/OpenSourcePizzaOracle.json');
@@ -10,7 +10,7 @@ const OpenSourcePizza = require('./contracts/OpenSourcePizza.json');
 
 const privateKey = process.env.ORACLE_PRIV as string;
 // set provider for all later instances to use
-Contract.setProvider(process.env.BLOCKCHAIN_CONNECTION_HTTPS);
+Contract.setProvider(process.env.BLOCKCHAIN_CONNECTION_WSS as string);
 
 const oracleAddress = process.env.ORACLE_CONTRACT;
 const mainPizzaAddress = process.env.PIZZA_CONTRACT;

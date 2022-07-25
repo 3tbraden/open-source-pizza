@@ -75,4 +75,3 @@ const getDependencyList = async (dependencies, list) => {
         await getDependencyList(package_obj.dependencies, list);
     }
 };
-// getDependencies(516239052, [516235362,516238027]).then((res) => console.log(res));

@@ -6,34 +6,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const web3_1 = __importDefault(require("web3"));
 const github_client_1 = require("./github-client");
 const Contract = require('web3-eth-contract');
-const web3Provider = new web3_1.default.providers.HttpProvider(`https://ropsten.infura.io/v3/2c77e96cffa447759bf958ee4cd8f9ad`);
+const web3Provider = new web3_1.default.providers.HttpProvider(process.env.BLOCKCHAIN_CONNECTION_HTTPS);
 const web3 = new web3_1.default(web3Provider);
 const OpenSourcePizzaOracle = require('./contracts/OpenSourcePizzaOracle.json');
 const OpenSourcePizza = require('./contracts/OpenSourcePizza.json');
-const owner = '0xef0f564EF485aA83cdaeD5b7Dfe7784a5DD272c7';
-const privateKey = '0x1be9fb140547fbc23da661d283db717caf265a97bae49e248206023cc7e164fa';
+const privateKey = process.env.ORACLE_PRIV;
 // set provider for all later instances to use
-Contract.setProvider('wss://ropsten.infura.io/ws/v3/2c77e96cffa447759bf958ee4cd8f9ad');
-// const caller = "0x557FD57ca1855913e457DA28fF3E033B0c653700";
-const oracleAddress = "0xa6a4a5d19327b575861466b0fa532833fa84b602";
-const mainPizzaAddress = '0x0681ef84916faf655d7702783653cde2c863583c';
+Contract.setProvider(process.env.BLOCKCHAIN_CONNECTION_WSS);
+const oracleAddress = process.env.ORACLE_CONTRACT;
+const mainPizzaAddress = process.env.PIZZA_CONTRACT;
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
-/*
-// // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
-        // const extractOnChainProjects = async () => {
-        //     const arr: number[] = []
-        //     await Promise.all(dependenciesFromGithub.map(async (projectID) => {
-        //         const result = await pizzaContract.methods.projectOwners(projectID).call()
-        //         result != 0 && arr.push(projectID)
-        //     }))
-        //     return arr;
-        // }
-        // const resultToReturn = await extractOnChainProjects()
-*/
-async function main() {
-}
-// main()           
 contract.events["RegisterEvent(uint32)"]()
     .on("connected", function (subId) {
     console.log("listening on event RegisterEvent");
@@ -71,55 +54,57 @@ contract.events["DonateEvent(uint32)"]()
     console.log('DonateEvent event received...');
     const { requestID } = event.returnValues;
     const projectID = await pizzaContract.methods.sponsorRequests(requestID).call();
-    // // Here, we call github to grab the dependencies. Currently using a dummy array
-    // const resultToReturn = await getDependencies(projectID)
-    // // Grabbing the list of dependencies for the project on chain ---> mapping(uint32 => uint32[]) public projectDependencies;
-    // const getExistingDependencies = async () => {
-    //     const res: number[] = []
-    //     var i = 0;
-    //     while (true) {
-    //         try {
-    //             const result = await pizzaContract.methods.projectDependencies(projectID, i).call();
-    //             res.push(result)
-    //             i += 1
-    //         } catch (e) {
-    //             return res
-    //         }
-    //     }
-    // }
-    // const existingDependenciesOnChain: number[] = await getExistingDependencies()
-    // /* Now, we check whether the dependencies have changed to evaluate the isReplace boolean.
-    //    If the lengths are not the same, they have changed, or if they are different at any given index, they have changed */
-    // var hasChanged = false
-    // if (resultToReturn.length != existingDependenciesOnChain.length) {
-    //     hasChanged = true
-    // } else {
-    //     for (var i = 0; i < resultToReturn.length; i++) {
-    //         if (resultToReturn[i] != existingDependenciesOnChain[i]) {
-    //             hasChanged = true;
-    //             break;
-    //         }
-    //     }
-    // }
-    // console.log(`hasChanged: ${hasChanged}`)
-    // if (hasChanged) {
-    //     try {
-    //         console.log('Trying to call replyDonateUpdateDeps...')
-    //         // TODO: Check whether a distribution is in progress
-    //         var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
-    //         const options = {
-    //             to: oracleAddress,
-    //             data: data,
-    //             gas: '100000',
-    //         }
-    //         const signedTransaction: any = await web3.eth.accounts.signTransaction(options, privateKey);
-    //         const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
-    //         console.log(`Reply donate update deps transaction receipt: ${transactionReceipt}`);
-    //     } catch (e) {
-    //         console.log(e);
-    //     }
-    // }
-    const resultToReturn = [517240368, 516238027, 516235362];
+    // Here, we call github to grab the dependencies. Currently using a dummy array
+    const resultToReturn = await (0, github_client_1.getDependencies)(projectID);
+    // Grabbing the list of dependencies for the project on chain ---> mapping(uint32 => uint32[]) public projectDependencies;
+    const getExistingDependencies = async () => {
+        const res = [];
+        var i = 0;
+        while (true) {
+            try {
+                const result = await pizzaContract.methods.projectDependencies(projectID, i).call();
+                res.push(result);
+                i += 1;
+            }
+            catch (e) {
+                return res;
+            }
+        }
+    };
+    const existingDependenciesOnChain = await getExistingDependencies();
+    /* Now, we check whether the dependencies have changed to evaluate the isReplace boolean.
+       If the lengths are not the same, they have changed, or if they are different at any given index, they have changed */
+    var hasChanged = false;
+    if (resultToReturn.length != existingDependenciesOnChain.length) {
+        hasChanged = true;
+    }
+    else {
+        for (var i = 0; i < resultToReturn.length; i++) {
+            if (resultToReturn[i] != existingDependenciesOnChain[i]) {
+                hasChanged = true;
+                break;
+            }
+        }
+    }
+    console.log(`hasChanged: ${hasChanged}`);
+    if (hasChanged) {
+        try {
+            console.log('Trying to call replyDonateUpdateDeps...');
+            // TODO: Check whether a distribution is in progress
+            var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
+            const options = {
+                to: oracleAddress,
+                data: data,
+                gas: '100000',
+            };
+            const signedTransaction = await web3.eth.accounts.signTransaction(options, privateKey);
+            const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+            console.log(`Reply donate update deps transaction receipt: ${transactionReceipt}`);
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
     // Now to call replyDonateDistribute
     try {
         // Split up the response dependant on singleCallMaxDepsSize
@@ -128,7 +113,6 @@ contract.events["DonateEvent(uint32)"]()
         var lowerIndex = 0;
         for (var i = 0; i < resultToReturn.length; i++) {
             if (((i + 1) % singleCallMaxDepsSize == 0) || ((i + 1) == resultToReturn.length)) {
-                console.log(`projectID: ${projectID}, lowerIndex: ${lowerIndex}, i: ${i}`);
                 var data = contract.methods["replyDonateDistribute(uint32,uint256,uint256)"](requestID, lowerIndex, i).encodeABI();
                 const options = {
                     to: oracleAddress,
@@ -138,6 +122,7 @@ contract.events["DonateEvent(uint32)"]()
                 lowerIndex = i + 1;
                 const signedTransaction = await web3.eth.accounts.signTransaction(options, privateKey);
                 const transactionReceipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction);
+                console.log(transactionReceipt);
             }
         }
     }

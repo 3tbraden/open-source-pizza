@@ -107,6 +107,7 @@ contract.events["DonateEvent(uint32)"]()
         try {
             console.log('Trying to call replyDonateUpdateDeps...');
             var isDistributionInProgress = await pizzaContract.methods.distributionInProgress(projectID).call();
+            console.log(`isDistributionInProgress: ${JSON.stringify(isDistributionInProgress, undefined, 4)}`);
             /* If a distribution is currently in progress, enter an interval where we keep checking this every 30 seconds
                When it becomes true, we exit the interval and call replyDonateUpdateDeps */
             if (isDistributionInProgress)

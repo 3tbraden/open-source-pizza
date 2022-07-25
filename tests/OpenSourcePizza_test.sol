@@ -19,6 +19,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   address acc_project1_owner;
   address acc_sponsor;
   address acc_project2_owner;
+  address acc_project3_owner;
 
   /// #sender: account-1
   function beforeAll() public {
@@ -31,6 +32,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     acc_project1_owner = TestsAccounts.getAccount(2);
     acc_sponsor = TestsAccounts.getAccount(3);
     acc_project2_owner = TestsAccounts.getAccount(4);
+    acc_project3_owner = TestsAccounts.getAccount(5);
   }
 
   function testOwner() public {
@@ -184,6 +186,12 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     Assert.equal(projectOwners[2], acc_project2_owner, "project 2 should map to account 4");
   }
 
+  /// #sender: account-1
+  function testRegisterProject3() public {
+    registerProject(3, acc_project3_owner);
+    Assert.equal(projectOwners[3], acc_project3_owner, "project 3 should map to account 5");
+  }
+
   /// update oracle to an actual oracle instance for donateToProject test.
   function setMockOracle() public {
     updateOracle(address(mock_oracle));
@@ -225,6 +233,7 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     donateToProject(1, 1);
     Assert.equal(address(this).balance, beforeSponsorRequest1Balance + 123, "balance should be increased by 123");
     beforeSponsorRequest2Balance = address(this).balance;
+    Assert.equal(undistributedAmounts[1], 123, "undistributed amount for request 1 should be 123");
   }
 
   /// #sender: account-4
@@ -232,6 +241,14 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
   function testDonateToProject2() public payable {
     donateToProject(2, 2);
     Assert.equal(address(this).balance, beforeSponsorRequest2Balance + 100, "balance should be increased by 100");
+    Assert.equal(undistributedAmounts[2], 100, "undistributed amount for request 2 should be 100");
+  }
+
+  /// #sender: account-4
+  /// #value: 300
+  function testDonateToProject3() public payable {
+    donateToProject(3, 3);
+    Assert.equal(undistributedAmounts[3], 300, "undistributed amount for request 3 should be 300");
   }
 
   /// reset oracle to the test account for mocking the following tests called by the oracle.
@@ -316,6 +333,19 @@ contract OpenSourcePizzaTest1 is OpenSourcePizza {
     Assert.equal(distribution[125], 120, "project dep should be distributed 100 wei");  // 20 + 100 = 120
     Assert.equal(distribution[1], 363, "source project should be distributed 300 wei"); // 63 + 300 = 363
     Assert.equal(undistributedAmounts[0], 0, "request should have no remaining fund to be distributed");
+  }
+
+  /// test distribute to project without any dependencies
+  /// #sender: account-1
+  function testDistributeRequest3() public {
+    Assert.equal(sponsorRequestAmounts[3], 300, "request should have a total of 300 wei to be distributed");
+    distribute(3, 0, 0);
+    // (bool success, bytes memory result) = address(this).delegatecall(abi.encodeWithSignature("distribute(uint32,uint256,uint256)", 3, 0, 0));
+    // Assert.equal(success, false, "dont care");
+    // string memory reason = abi.decode(result.slice(4, result.length - 4), (string));
+    // Assert.equal(reason, "", reason);
+    Assert.equal(distribution[3], 300, "project 3 should get all the fund");
+    Assert.equal(undistributedAmounts[3], 0, "request should have no remaining fund to be distributed");
   }
 
   /// test onlyProjectOwner modifier on redeem

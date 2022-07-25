@@ -116,6 +116,7 @@ contract OpenSourcePizza is OSPOracleClient {
 
     uint32 sourceProjectID = sponsorRequests[requestID];
     if (projectDependencies[sourceProjectID].length == 0) {
+      distributionInProgress[sourceProjectID] += 1;
       // Give source project owner all the fund given no deps.
       (bool ok, uint256 newBalance) = SafeMath.tryAdd(distribution[sourceProjectID], undistributedAmounts[requestID]);
       require(ok, "distribute balance error");
@@ -126,6 +127,7 @@ contract OpenSourcePizza is OSPOracleClient {
       sponsorRequestAmounts[requestID] = 0;
       undistributedAmounts[requestID] = 0;
       distributionInProgress[sourceProjectID] -= 1;
+      return;
     }
 
     if (toDepIdx == 0) {

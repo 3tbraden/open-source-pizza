@@ -31,6 +31,26 @@ var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
         // const resultToReturn = await extractOnChainProjects()
 */
 
+const checkUntilDistributionHasEnded = async (projectID: number) => {
+    console.log('A distribution is currently in progress... entering an interval to keep evaluating this every 30 seconds')
+                
+    const checkIfDistributionIsInProgressInterval = async () => {   
+        var inProgress = await pizzaContract.methods.distributionInProgress(projectID).call()
+        console.log(`isDistributionInProgress: ${inProgress}`)
+        
+        if (!inProgress) {
+            console.log('Distribution has ended!')
+            stopChecking()
+        }
+        console.log('Distribution still in progress...')
+    }
+    const stopChecking = () => {
+        clearInterval(myInterval)
+    }
+
+    const myInterval = setInterval(checkIfDistributionIsInProgressInterval, 30000)
+}
+
 contract!.events["RegisterEvent(uint32)"]()
     .on("connected", function (subId: any) {
         console.log("listening on event RegisterEvent");
@@ -111,7 +131,12 @@ contract!.events["DonateEvent(uint32)"]()
             try {
                 console.log('Trying to call replyDonateUpdateDeps...')
                 
-                // TODO: Check whether a distribution is in progress
+                var isDistributionInProgress: boolean = await pizzaContract.methods.distributionInProgress(projectID).call()
+                
+                /* If a distribution is currently in progress, enter an interval where we keep checking this every 30 seconds
+                   When it becomes true, we exit the interval and call replyDonateUpdateDeps */
+                if (isDistributionInProgress) checkUntilDistributionHasEnded(projectID)
+
                 var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
                 const options = {
                     to: oracleAddress,

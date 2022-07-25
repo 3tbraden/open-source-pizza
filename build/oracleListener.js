@@ -17,6 +17,34 @@ const oracleAddress = process.env.ORACLE_CONTRACT;
 const mainPizzaAddress = process.env.PIZZA_CONTRACT;
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
+/*
+// // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
+        // const extractOnChainProjects = async () => {
+        //     const arr: number[] = []
+        //     await Promise.all(dependenciesFromGithub.map(async (projectID) => {
+        //         const result = await pizzaContract.methods.projectOwners(projectID).call()
+        //         result != 0 && arr.push(projectID)
+        //     }))
+        //     return arr;
+        // }
+        // const resultToReturn = await extractOnChainProjects()
+*/
+const checkUntilDistributionHasEnded = async (projectID) => {
+    console.log('A distribution is currently in progress... entering an interval to keep evaluating this every 30 seconds');
+    const checkIfDistributionIsInProgressInterval = async () => {
+        var inProgress = await pizzaContract.methods.distributionInProgress(projectID).call();
+        console.log(`isDistributionInProgress: ${inProgress}`);
+        if (!inProgress) {
+            console.log('Distribution has ended!');
+            stopChecking();
+        }
+        console.log('Distribution still in progress...');
+    };
+    const stopChecking = () => {
+        clearInterval(myInterval);
+    };
+    const myInterval = setInterval(checkIfDistributionIsInProgressInterval, 30000);
+};
 contract.events["RegisterEvent(uint32)"]()
     .on("connected", function (subId) {
     console.log("listening on event RegisterEvent");
@@ -90,7 +118,11 @@ contract.events["DonateEvent(uint32)"]()
     if (hasChanged) {
         try {
             console.log('Trying to call replyDonateUpdateDeps...');
-            // TODO: Check whether a distribution is in progress
+            var isDistributionInProgress = await pizzaContract.methods.distributionInProgress(projectID).call();
+            /* If a distribution is currently in progress, enter an interval where we keep checking this every 30 seconds
+               When it becomes true, we exit the interval and call replyDonateUpdateDeps */
+            if (isDistributionInProgress)
+                checkUntilDistributionHasEnded(projectID);
             var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
             const options = {
                 to: oracleAddress,

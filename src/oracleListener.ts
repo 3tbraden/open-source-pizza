@@ -18,35 +18,40 @@ const mainPizzaAddress = process.env.PIZZA_CONTRACT;
 var contract = new Contract(OpenSourcePizzaOracle.abi, oracleAddress);
 var pizzaContract = new Contract(OpenSourcePizza.abi, mainPizzaAddress);
 
-/* 
-// // Iterates through the dependencies of the project and returns only the ones that exist on our blockchain
-        // const extractOnChainProjects = async () => {
-        //     const arr: number[] = []
-        //     await Promise.all(dependenciesFromGithub.map(async (projectID) => {
-        //         const result = await pizzaContract.methods.projectOwners(projectID).call()
-        //         result != 0 && arr.push(projectID)
-        //     }))
-        //     return arr;
-        // }
-        // const resultToReturn = await extractOnChainProjects()
-*/
+const checkUntilDistributionHasEnded = async (projectID: number) => {
+    console.log('A distribution is currently in progress... entering an interval to keep evaluating this every 30 seconds')
+                
+    const checkIfDistributionIsInProgressInterval = async () => {   
+        var inProgress = await pizzaContract.methods.distributionInProgress(projectID).call()
+        console.log(`isDistributionInProgress: ${inProgress}`)
+        
+        if (!inProgress) {
+            console.log('Distribution has ended!')
+            stopChecking()
+        }
+        console.log('Distribution still in progress...')
+    }
+    const stopChecking = () => {
+        clearInterval(myInterval)
+    }
+
+    const myInterval = setInterval(checkIfDistributionIsInProgressInterval, 30000)
+}
 
 contract!.events["RegisterEvent(uint32)"]()
     .on("connected", function (subId: any) {
-        console.log("listening on event RegisterEvent");
+        console.log("Listening on event RegisterEvent...");
     })
     .on("data", async function (event: any) {
-        console.log(`logging event returnValues ${JSON.stringify(event.returnValues)}`);
+        console.log('Received data from RegisterEvent...')
         const { projectID } = event.returnValues
 
         try {
             console.log('Trying to call reply register...')
-            console.log(contract.methods)
 
             // Grab the address of the project owner from their github repo
             const ownerAddress = await getAddress(projectID)
 
-            console.log(`ownerAddress: ${ownerAddress}`)
             // need to grab the address of the project owner
             var data = contract.methods["replyRegister(uint32,address)"](projectID, ownerAddress).encodeABI();
             const options = {
@@ -66,10 +71,10 @@ contract!.events["RegisterEvent(uint32)"]()
 // Donate Event
 contract!.events["DonateEvent(uint32)"]()
     .on("connected", function (subId: any) {
-        console.log("listening on event DonateEvent");
+        console.log("Listening on event DonateEvent");
     })
     .on("data", async function (event: any) {
-        console.log('DonateEvent event received...')
+        console.log('Received data from DonateEvent...')
         const { requestID } = event.returnValues
         const projectID = await pizzaContract.methods.sponsorRequests(requestID).call()
         
@@ -106,12 +111,16 @@ contract!.events["DonateEvent(uint32)"]()
                 }
             }
         }
-        console.log(`hasChanged: ${hasChanged}`)
+
         if (hasChanged) {
             try {
                 console.log('Trying to call replyDonateUpdateDeps...')
                 
-                // TODO: Check whether a distribution is in progress
+                var isDistributionInProgress: any = await pizzaContract.methods.distributionInProgress(projectID).call()
+
+                /* If a distribution is currently in progress, enter an interval where we keep checking this every 30 seconds
+                   When it becomes true, we exit the interval and call replyDonateUpdateDeps */
+                if (isDistributionInProgress) checkUntilDistributionHasEnded(projectID)
                 var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
                 const options = {
                     to: oracleAddress,
@@ -130,7 +139,7 @@ contract!.events["DonateEvent(uint32)"]()
         try {
             // Split up the response dependant on singleCallMaxDepsSize
             console.log('Calling replyDonateDistribute...')
-            const singleCallMaxDepsSize = await pizzaContract.methods.singleCallMaxDepsSize().call()
+            const singleCallMaxDepsSize = 1
             var lowerIndex = 0;
         
             for (var i = 0; i < resultToReturn.length; i++) {

@@ -22,10 +22,9 @@ const checkUntilDistributionHasEnded = async (projectID: number) => {
     console.log('A distribution is currently in progress... entering an interval to keep evaluating this every 30 seconds')
                 
     const checkIfDistributionIsInProgressInterval = async () => {   
-        var inProgress = await pizzaContract.methods.distributionInProgress(projectID).call()
-        console.log(`isDistributionInProgress: ${inProgress}`)
+        var numDistributionsInProgress = await pizzaContract.methods.distributionInProgress(projectID).call()
         
-        if (!inProgress) {
+        if (numDistributionsInProgress == 0) {
             console.log('Distribution has ended!')
             stopChecking()
         }
@@ -111,16 +110,16 @@ contract!.events["DonateEvent(uint32)"]()
                 }
             }
         }
-
+        
         if (hasChanged) {
             try {
                 console.log('Trying to call replyDonateUpdateDeps...')
                 
-                var isDistributionInProgress: any = await pizzaContract.methods.distributionInProgress(projectID).call()
+                var numDistributionsInProgress: any = await pizzaContract.methods.distributionInProgress(projectID).call()
 
                 /* If a distribution is currently in progress, enter an interval where we keep checking this every 30 seconds
                    When it becomes true, we exit the interval and call replyDonateUpdateDeps */
-                if (isDistributionInProgress) checkUntilDistributionHasEnded(projectID)
+                if (numDistributionsInProgress > 0) await checkUntilDistributionHasEnded(projectID)
                 var data = contract.methods["replyDonateUpdateDeps(uint32,uint32[],bool)"](projectID, resultToReturn, hasChanged).encodeABI();
                 const options = {
                     to: oracleAddress,
